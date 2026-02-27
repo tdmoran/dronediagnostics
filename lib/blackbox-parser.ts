@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import { BlackboxHeader, BlackboxFrame, BlackboxLog, BlackboxField, FlightStatistics, LogFile } from '../../types/blackbox';
+import { BlackboxHeader, BlackboxFrame, BlackboxLog, BlackboxField, FlightStatistics, LogFile } from '@/types/blackbox';
 
 /**
  * Betaflight Blackbox Log Parser
