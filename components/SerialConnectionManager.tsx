@@ -95,15 +95,15 @@ export function SerialConnectionManager() {
   };
 
   return (
-    <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
+    <div className="bg-bf-surface rounded p-6 border border-bf-border">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-          <Usb className="w-5 h-5 text-purple-500" />
+        <h3 className="text-lg font-semibold text-bf-text flex items-center gap-2">
+          <Usb className="w-5 h-5 text-bf-accent" />
           Serial Connection
         </h3>
         <button
           onClick={fetchPorts}
-          className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 transition-colors"
+          className="p-2 rounded bg-bf-surface-light hover:bg-bf-border text-bf-text-muted transition-colors border border-bf-border"
           title="Refresh ports"
         >
           <RefreshCw className="w-4 h-4" />
@@ -111,25 +111,25 @@ export function SerialConnectionManager() {
       </div>
 
       {/* Status */}
-      <div className={`flex items-center gap-3 p-3 rounded-lg border mb-4 ${
+      <div className={`flex items-center gap-3 p-3 rounded border mb-4 ${
         status.connected 
-          ? 'bg-green-950/30 border-green-800' 
-          : 'bg-gray-800/50 border-gray-700'
+          ? 'bg-bf-success/10 border-bf-success/30' 
+          : 'bg-bf-surface-light/50 border-bf-border'
       }`}>
         {status.connected ? (
-          <><Wifi className="w-5 h-5 text-green-400" />
+          <><Wifi className="w-5 h-5 text-bf-success" />
           <div>
-            <p className="text-green-400 font-medium">Connected</p>
-            <p className="text-sm text-gray-400">{status.port} @ {status.baudrate} baud</p>
+            <p className="text-bf-success font-medium">Connected</p>
+            <p className="text-sm text-bf-text-muted font-mono">{status.port} @ {status.baudrate} baud</p>
           </div></>
         ) : (
-          <><WifiOff className="w-5 h-5 text-gray-500" />
-          <p className="text-gray-400">Not connected</p></>
+          <><WifiOff className="w-5 h-5 text-bf-text-muted" />
+          <p className="text-bf-text-muted">Not connected</p></>
         )}
       </div>
 
       {error && (
-        <div className="bg-red-950/30 border border-red-800 rounded-lg p-3 mb-4 text-red-400 text-sm">
+        <div className="bg-bf-danger/10 border border-bf-danger/30 rounded p-3 mb-4 text-bf-danger text-sm">
           {error}
         </div>
       )}
@@ -138,11 +138,11 @@ export function SerialConnectionManager() {
       {!status.connected ? (
         <div className="space-y-3">
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Serial Port</label>
+            <label className="block text-sm text-bf-text-muted mb-1">Serial Port</label>
             <select
               value={selectedPort}
               onChange={(e) => setSelectedPort(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+              className="w-full bg-bf-bg border border-bf-border rounded px-3 py-2 text-bf-text focus:outline-none focus:border-bf-accent"
             >
               <option value="">Select port...</option>
               {ports.map((port) => (
@@ -150,16 +150,16 @@ export function SerialConnectionManager() {
               ))}
             </select>
             {ports.length === 0 && (
-              <p className="text-sm text-gray-500 mt-1">No serial ports detected</p>
+              <p className="text-sm text-bf-text-muted mt-1">No serial ports detected</p>
             )}
           </div>
 
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Baud Rate</label>
+            <label className="block text-sm text-bf-text-muted mb-1">Baud Rate</label>
             <select
               value={baudrate}
               onChange={(e) => setBaudrate(Number(e.target.value))}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+              className="w-full bg-bf-bg border border-bf-border rounded px-3 py-2 text-bf-text focus:outline-none focus:border-bf-accent font-mono"
             >
               {baudrates.map((rate) => (
                 <option key={rate} value={rate}>{rate}</option>
@@ -170,7 +170,7 @@ export function SerialConnectionManager() {
           <button
             onClick={handleConnect}
             disabled={!selectedPort || loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:text-gray-500 text-white py-2 rounded-lg font-medium transition-colors"
+            className="w-full bg-bf-accent hover:bg-bf-accent-dark disabled:bg-bf-surface-light disabled:text-bf-text-muted text-bf-bg py-2 rounded font-medium transition-colors"
           >
             {loading ? 'Connecting...' : 'Connect'}
           </button>
@@ -179,7 +179,7 @@ export function SerialConnectionManager() {
         <button
           onClick={handleDisconnect}
           disabled={loading}
-          className="w-full bg-red-600 hover:bg-red-700 disabled:bg-gray-700 text-white py-2 rounded-lg font-medium transition-colors"
+          className="w-full bg-bf-danger hover:bg-bf-danger/80 disabled:bg-bf-surface-light text-white py-2 rounded font-medium transition-colors"
         >
           {loading ? 'Disconnecting...' : 'Disconnect'}
         </button>

@@ -17,12 +17,12 @@ interface GPSStatsPanelProps {
 export function GPSStatsPanel({ gps }: GPSStatsPanelProps) {
   if (!gps) {
     return (
-      <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
-        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-          <Activity className="w-5 h-5 text-blue-500" />
+      <div className="bg-bf-surface rounded p-6 border border-bf-border">
+        <h3 className="text-lg font-semibold text-bf-text mb-4 flex items-center gap-2">
+          <Activity className="w-5 h-5 text-bf-accent" />
           GPS Statistics
         </h3>
-        <div className="text-gray-500 text-center py-8">
+        <div className="text-bf-text-muted text-center py-8">
           Waiting for GPS data...
         </div>
       </div>
@@ -34,53 +34,53 @@ export function GPSStatsPanel({ gps }: GPSStatsPanelProps) {
       label: 'Satellites',
       value: gps.num_satellites,
       unit: 'visible',
-      icon: <Satellite className="w-5 h-5 text-blue-500" />,
-      color: gps.num_satellites >= 8 ? 'text-green-400' : 
-             gps.num_satellites >= 4 ? 'text-yellow-400' : 'text-red-400',
+      icon: <Satellite className="w-5 h-5 text-bf-accent" />,
+      color: gps.num_satellites >= 8 ? 'text-bf-success' : 
+             gps.num_satellites >= 4 ? 'text-bf-warning' : 'text-bf-danger',
     },
     {
       label: 'Fix Type',
       value: gps.fix_status,
       unit: '',
-      icon: <Target className="w-5 h-5 text-purple-500" />,
-      color: gps.fix_type === 2 ? 'text-green-400' : 
-             gps.fix_type === 1 ? 'text-yellow-400' : 'text-red-400',
+      icon: <Target className="w-5 h-5 text-bf-accent" />,
+      color: gps.fix_type === 2 ? 'text-bf-success' : 
+             gps.fix_type === 1 ? 'text-bf-warning' : 'text-bf-danger',
     },
     {
       label: 'HDOP',
       value: gps.hdop ? (gps.hdop / 100).toFixed(2) : '--',
       unit: gps.hdop ? (gps.hdop < 150 ? '(Good)' : gps.hdop < 300 ? '(Fair)' : '(Poor)') : '',
-      icon: <Activity className="w-5 h-5 text-orange-500" />,
-      color: gps.hdop && gps.hdop < 150 ? 'text-green-400' : 
-             gps.hdop && gps.hdop < 300 ? 'text-yellow-400' : 'text-red-400',
+      icon: <Activity className="w-5 h-5 text-bf-accent" />,
+      color: gps.hdop && gps.hdop < 150 ? 'text-bf-success' : 
+             gps.hdop && gps.hdop < 300 ? 'text-bf-warning' : 'text-bf-danger',
     },
     {
       label: 'Speed',
       value: gps.speed,
       unit: 'cm/s',
-      icon: <Gauge className="w-5 h-5 text-cyan-500" />,
-      color: 'text-white',
+      icon: <Gauge className="w-5 h-5 text-bf-accent" />,
+      color: 'text-bf-text',
     },
     {
       label: 'Altitude',
       value: gps.altitude,
       unit: 'm',
-      icon: <Mountain className="w-5 h-5 text-emerald-500" />,
-      color: 'text-white',
+      icon: <Mountain className="w-5 h-5 text-bf-accent" />,
+      color: 'text-bf-text',
     },
     {
       label: 'Course',
       value: `${gps.course}°`,
       unit: getCompassDirection(gps.course),
-      icon: <Navigation className="w-5 h-5 text-pink-500" style={{ transform: `rotate(${gps.course}deg)` }} />,
-      color: 'text-white',
+      icon: <Navigation className="w-5 h-5 text-bf-accent" style={{ transform: `rotate(${gps.course}deg)` }} />,
+      color: 'text-bf-text',
     },
   ];
 
   return (
-    <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
-      <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-        <Activity className="w-5 h-5 text-blue-500" />
+    <div className="bg-bf-surface rounded p-6 border border-bf-border">
+      <h3 className="text-lg font-semibold text-bf-text mb-4 flex items-center gap-2">
+        <Activity className="w-5 h-5 text-bf-accent" />
         GPS Statistics
       </h3>
       
@@ -88,17 +88,17 @@ export function GPSStatsPanel({ gps }: GPSStatsPanelProps) {
         {stats.map((stat) => (
           <div 
             key={stat.label}
-            className="bg-gray-800/50 rounded-lg p-4 border border-gray-700"
+            className="bg-bf-surface-light/50 rounded p-4 border border-bf-border"
           >
             <div className="flex items-center gap-2 mb-2">
               {stat.icon}
-              <span className="text-sm text-gray-400">{stat.label}</span>
+              <span className="text-sm text-bf-text-muted">{stat.label}</span>
             </div>
             <div className="flex items-baseline gap-2">
-              <span className={cn("text-2xl font-bold", stat.color)}>
+              <span className={cn("text-2xl font-bold font-mono", stat.color)}>
                 {stat.value}
               </span>
-              <span className="text-xs text-gray-500">{stat.unit}</span>
+              <span className="text-xs text-bf-text-muted">{stat.unit}</span>
             </div>
           </div>
         ))}

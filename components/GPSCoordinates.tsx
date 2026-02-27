@@ -19,12 +19,12 @@ export function GPSCoordinates({ gps }: GPSCoordinatesProps) {
 
   if (!gps) {
     return (
-      <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
-        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-          <MapPin className="w-5 h-5 text-blue-500" />
+      <div className="bg-bf-surface rounded p-6 border border-bf-border">
+        <h3 className="text-lg font-semibold text-bf-text mb-4 flex items-center gap-2">
+          <MapPin className="w-5 h-5 text-bf-accent" />
           Coordinates
         </h3>
-        <div className="text-gray-500 text-center py-8">
+        <div className="text-bf-text-muted text-center py-8">
           No GPS data available
         </div>
       </div>
@@ -32,63 +32,63 @@ export function GPSCoordinates({ gps }: GPSCoordinatesProps) {
   }
 
   return (
-    <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
-      <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-        <MapPin className="w-5 h-5 text-blue-500" />
+    <div className="bg-bf-surface rounded p-6 border border-bf-border">
+      <h3 className="text-lg font-semibold text-bf-text mb-4 flex items-center gap-2">
+        <MapPin className="w-5 h-5 text-bf-accent" />
         Coordinates
       </h3>
       
       <div className="space-y-4">
         {/* Decimal Degrees */}
-        <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
+        <div className="bg-bf-surface-light/50 rounded p-4 border border-bf-border">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-400">Decimal Degrees</span>
+            <span className="text-sm text-bf-text-muted">Decimal Degrees</span>
             <button
               onClick={() => handleCopy('decimal', gps.coordinates_decimal)}
-              className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+              className="flex items-center gap-1 text-xs text-bf-accent hover:text-bf-accent-dark transition-colors"
             >
               <Copy className="w-3 h-3" />
               {copied === 'decimal' ? 'Copied!' : 'Copy'}
             </button>
           </div>
-          <div className="font-mono text-white text-lg">
+          <div className="font-mono text-bf-text text-lg">
             {gps.coordinates_decimal}
           </div>
           <div className="grid grid-cols-2 gap-4 mt-3 text-sm">
             <div>
-              <span className="text-gray-500">Lat: </span>
-              <span className="text-green-400 font-mono">{gps.lat.toFixed(6)}°</span>
+              <span className="text-bf-text-muted">Lat: </span>
+              <span className="text-bf-success font-mono">{gps.lat.toFixed(6)}°</span>
             </div>
             <div>
-              <span className="text-gray-500">Lon: </span>
-              <span className="text-blue-400 font-mono">{gps.lon.toFixed(6)}°</span>
+              <span className="text-bf-text-muted">Lon: </span>
+              <span className="text-bf-accent font-mono">{gps.lon.toFixed(6)}°</span>
             </div>
           </div>
         </div>
 
         {/* DMS Format */}
-        <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
+        <div className="bg-bf-surface-light/50 rounded p-4 border border-bf-border">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-400">Degrees, Minutes, Seconds</span>
+            <span className="text-sm text-bf-text-muted">Degrees, Minutes, Seconds</span>
             <button
               onClick={() => handleCopy('dms', gps.coordinates_dms)}
-              className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+              className="flex items-center gap-1 text-xs text-bf-accent hover:text-bf-accent-dark transition-colors"
             >
               <Copy className="w-3 h-3" />
               {copied === 'dms' ? 'Copied!' : 'Copy'}
             </button>
           </div>
-          <div className="font-mono text-white text-lg">
+          <div className="font-mono text-bf-text text-lg">
             {gps.coordinates_dms}
           </div>
           <div className="grid grid-cols-2 gap-4 mt-3 text-sm">
             <div>
-              <span className="text-gray-500">Lat: </span>
-              <span className="text-green-400 font-mono">{gps.lat_dms}</span>
+              <span className="text-bf-text-muted">Lat: </span>
+              <span className="text-bf-success font-mono">{gps.lat_dms}</span>
             </div>
             <div>
-              <span className="text-gray-500">Lon: </span>
-              <span className="text-blue-400 font-mono">{gps.lon_dms}</span>
+              <span className="text-bf-text-muted">Lon: </span>
+              <span className="text-bf-accent font-mono">{gps.lon_dms}</span>
             </div>
           </div>
         </div>

@@ -5,8 +5,8 @@
 }
 
 :root {
-  --primary: #007bff;
-  --primary-dark: #0056b3;
+  --primary: #ffbb00;
+  --primary-dark: #e6a800;
   --secondary: #6c757d;
   --success: #28a745;
   --danger: #dc3545;
@@ -29,48 +29,23 @@ body {
   min-height: 100vh;
 }
 
-.navbar {
-  background-color: var(--surface);
-  padding: 1rem 2rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid var(--border);
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-.nav-brand {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 1.25rem;
-  font-weight: 600;
+::-webkit-scrollbar-track {
+  background: #1e293b;
 }
 
-.nav-icon {
-  font-size: 1.5rem;
+::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 4px;
 }
 
-.nav-links {
-  display: flex;
-  gap: 1.5rem;
-}
-
-.nav-links a {
-  color: var(--text-muted);
-  text-decoration: none;
-  padding: 0.5rem 1rem;
-  border-radius: 0.375rem;
-  transition: all 0.2s;
-}
-
-.nav-links a:hover {
-  color: var(--text);
-  background-color: var(--surface-light);
-}
-
-.nav-links a.active {
-  color: var(--primary);
-  background-color: rgba(0, 123, 255, 0.1);
+::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
 }
 
 .main-content {
@@ -127,7 +102,7 @@ body {
 
 .btn-primary {
   background-color: var(--primary);
-  color: white;
+  color: #0f172a;
 }
 
 .btn-primary:hover {
@@ -169,12 +144,12 @@ body {
 
 .file-upload:hover {
   border-color: var(--primary);
-  background-color: rgba(0, 123, 255, 0.05);
+  background-color: rgba(255, 187, 0, 0.05);
 }
 
 .file-upload.dragover {
   border-color: var(--primary);
-  background-color: rgba(0, 123, 255, 0.1);
+  background-color: rgba(255, 187, 0, 0.1);
 }
 
 .grid {
@@ -207,12 +182,12 @@ body {
     grid-template-columns: 1fr;
   }
   
-  .nav-links {
-    display: none;
-  }
-  
   .main-content {
     padding: 1rem;
+  }
+  
+  .page-header h1 {
+    font-size: 1.5rem;
   }
 }
 

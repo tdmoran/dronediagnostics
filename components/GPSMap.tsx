@@ -16,9 +16,9 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-// Custom drone icon
+// Custom drone icon with Betaflight orange accent
 const droneIcon = new Icon({
-  iconUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2I4MmY2IiBzdHJva2Utd2lkdGg9IjIiPjxwYXRoIGQ9Ik0xMiAyTDQuNSA4LjU1djYuOUwxMiAyMmw3LjUtNi41NXYtNi45TDEyIDJ6Ii8+PHBhdGggZD0iTTEyIDJ2MjAiLz48cGF0aCBkPSJNMTIgMTJsNy41LTMuNDUiLz48cGF0aCBkPSJNMTIgMTJsLTcuNS0zLjQ1Ii8+PC9zdmc+',
+  iconUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZiYjAwIiBzdHJva2Utd2lkdGg9IjIiPjxwYXRoIGQ9Ik0xMiAyTDQuNSA4LjU1djYuOUwxMiAyMmw3LjUtNi41NXYtNi45TDEyIDJ6Ii8+PHBhdGggZD0iTTEyIDJ2MjAiLz48cGF0aCBkPSJNMTIgMTJsNy41LTMuNDUiLz48cGF0aCBkPSJNMTIgMTJsLTcuNS0zLjQ1Ii8+PC9zdmc+',
   iconSize: [32, 32],
   iconAnchor: [16, 16],
   popupAnchor: [0, -16],
@@ -46,7 +46,7 @@ export function GPSMap({ gps, height = '400px' }: GPSMapProps) {
   const position: [number, number] = gps ? [gps.lat, gps.lon] : defaultPosition;
 
   return (
-    <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden" style={{ height }}>
+    <div className="bg-bf-surface rounded border border-bf-border overflow-hidden" style={{ height }}>
       <MapContainer
         center={position}
         zoom={15}
@@ -61,13 +61,13 @@ export function GPSMap({ gps, height = '400px' }: GPSMapProps) {
         {gps && gps.fix_type > 0 && (
           <Marker position={position} icon={droneIcon}>
             <Popup>
-              <div className="text-sm">
+              <div className="text-sm" style={{ color: '#2a2a2a' }}>
                 <p className="font-semibold">Drone Position</p>
-                <p>Lat: {gps.lat.toFixed(6)}</p>
-                <p>Lon: {gps.lon.toFixed(6)}</p>
-                <p>Altitude: {gps.altitude}m</p>
-                <p>Speed: {gps.speed} cm/s</p>
-                <p>Course: {gps.course}°</p>
+                <p className="font-mono">Lat: {gps.lat.toFixed(6)}</p>
+                <p className="font-mono">Lon: {gps.lon.toFixed(6)}</p>
+                <p className="font-mono">Altitude: {gps.altitude}m</p>
+                <p className="font-mono">Speed: {gps.speed} cm/s</p>
+                <p className="font-mono">Course: {gps.course}°</p>
               </div>
             </Popup>
           </Marker>
@@ -77,10 +77,10 @@ export function GPSMap({ gps, height = '400px' }: GPSMapProps) {
       </MapContainer>
       
       {(!gps || gps.fix_type === 0) && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-900/80 pointer-events-none">
+        <div className="absolute inset-0 flex items-center justify-center bg-bf-bg/90 pointer-events-none">
           <div className="text-center">
-            <p className="text-gray-400 text-lg">No GPS Fix</p>
-            <p className="text-gray-600 text-sm">Waiting for satellite lock...</p>
+            <p className="text-bf-text-muted text-lg">No GPS Fix</p>
+            <p className="text-bf-text-muted text-sm opacity-60">Waiting for satellite lock...</p>
           </div>
         </div>
       )}

@@ -61,11 +61,11 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 bg-gray-900 text-white min-h-screen flex flex-col">
-      <div className="p-6 border-b border-gray-800">
+    <aside className="w-64 bg-bf-surface text-bf-text min-h-screen flex flex-col border-r border-bf-border">
+      <div className="p-6 border-b border-bf-border">
         <h1 className="text-xl font-bold flex items-center gap-2">
-          <Activity className="w-6 h-6 text-blue-500" />
-          DroneDiagnostics
+          <Activity className="w-6 h-6 text-bf-accent" />
+          <span className="text-bf-accent">Drone</span>Diagnostics
         </h1>
       </div>
       
@@ -79,16 +79,16 @@ export function Sidebar() {
                 <Link
                   href={item.href}
                   className={cn(
-                    'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
+                    'flex items-center gap-3 px-4 py-3 rounded transition-colors',
                     isActive 
-                      ? 'bg-blue-600 text-white' 
-                      : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                      ? 'bg-bf-accent text-bf-bg font-medium' 
+                      : 'text-bf-text-muted hover:bg-bf-surface-light hover:text-bf-text'
                   )}
                 >
                   {item.icon}
                   <span className="font-medium">{item.label}</span>
                   {isActive && (
-                    <span className="ml-auto w-2 h-2 bg-white rounded-full" />
+                    <span className="ml-auto w-2 h-2 bg-bf-bg rounded-full" />
                   )}
                 </Link>
               </li>
@@ -97,12 +97,12 @@ export function Sidebar() {
         </ul>
       </nav>
       
-      <div className="p-4 border-t border-gray-800">
-        <div className="flex items-center gap-3 text-sm text-gray-400">
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+      <div className="p-4 border-t border-bf-border">
+        <div className="flex items-center gap-3 text-sm text-bf-text-muted">
+          <div className="w-2 h-2 bg-bf-success rounded-full animate-pulse" />
           <span>System Online</span>
         </div>
-        <p className="text-xs text-gray-600 mt-2">v1.0.0</p>
+        <p className="text-xs text-bf-text-muted mt-2 opacity-50">v1.0.0</p>
       </div>
     </aside>
   );
