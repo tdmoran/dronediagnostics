@@ -8,7 +8,8 @@ import {
   Settings, 
   Activity,
   Battery,
-  Radio
+  Radio,
+  Wrench
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
