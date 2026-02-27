@@ -26,6 +26,11 @@ const sidebarItems: SidebarItem[] = [
     icon: <LayoutDashboard className="w-5 h-5" />,
   },
   {
+    label: 'Diagnose',
+    href: '/diagnose',
+    icon: <Wrench className="w-5 h-5" />,
+  },
+  {
     label: 'GPS',
     href: '/gps',
     icon: <MapPin className="w-5 h-5" />,
