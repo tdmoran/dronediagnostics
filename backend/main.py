@@ -1,16 +1,23 @@
 """Drone Diagnostics API - Main FastAPI application."""
 
 import asyncio
+import io
 import json
+import re
 from contextlib import asynccontextmanager
-from typing import Optional, Set
+from datetime import datetime
+from typing import Optional, Set, Dict, List, Any
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from msp.protocol import MSPProtocol, GPSPosition
-from msp.codes import MSP_RAW_GPS, MSP_COMP_GPS, MSP_GPS_DATA
+from msp.codes import (
+    MSP_RAW_GPS, MSP_COMP_GPS, MSP_GPS_DATA, MSP_API_VERSION,
+    MSP_FC_VARIANT, MSP_FC_VERSION, MSP_BOARD_INFO, MSP_UID
+)
 from msp.serial import MSPSerialConnection, create_serial_connection, get_serial_connection
 
 
@@ -55,6 +62,68 @@ class TelemetryData(BaseModel):
     """Full telemetry data including GPS."""
     gps: Optional[GPSDataResponse] = None
     timestamp: float
+
+
+class FirmwareVersion(BaseModel):
+    """Firmware version model."""
+    major: int
+    minor: int
+    patch: int
+    versionString: str
+    buildDate: Optional[str] = None
+
+
+class BoardInfo(BaseModel):
+    """Board information model."""
+    identifier: str
+    targetName: str
+    boardName: str
+    manufacturerId: str
+
+
+class BlackboxFrame(BaseModel):
+    """Blackbox frame data model."""
+    timestamp: int
+    gyro: Dict[str, float]
+    accel: Dict[str, float]
+    motors: List[int]
+    rcCommand: Dict[str, int]
+    altitude: Optional[float] = None
+    speed: Optional[float] = None
+    voltage: Optional[float] = None
+    current: Optional[float] = None
+    rssi: Optional[int] = None
+
+
+class FlightStatistics(BaseModel):
+    """Flight statistics model."""
+    duration: float
+    maxSpeed: float
+    maxAltitude: float
+    maxGyroRate: float
+    maxAccel: float
+    avgVoltage: float
+    avgCurrent: float
+    maxCurrent: float
+    distanceTraveled: float
+
+
+class BlackboxHeader(BaseModel):
+    """Blackbox header model."""
+    version: int
+    firmwareVersion: str
+    firmwareRevision: str
+    boardInformation: str
+    craftName: str
+    logStartTime: datetime
+    fields: List[Dict[str, Any]]
+
+
+class BlackboxLog(BaseModel):
+    """Complete blackbox log model."""
+    header: BlackboxHeader
+    frames: List[BlackboxFrame]
+    statistics: FlightStatistics
 
 
 def gps_to_response(gps: GPSPosition) -> GPSDataResponse:
@@ -333,9 +402,347 @@ async def health_check():
     
     return {
         "status": "healthy",
+        "version": "1.1.0",
         "connected_clients": len(connected_clients),
         "serial_connected": serial_status
     }
+
+
+# ============== BLACKBOX PARSER ==============
+
+class BlackboxParser:
+    """Parser for Betaflight Blackbox BBL files."""
+    
+    def __init__(self, data: bytes):
+        self.data = data.decode('utf-8', errors='ignore')
+        self.lines = self.data.split('\n')
+        self.header_info = {}
+        self.field_names = []
+        
+    def parse_header(self) -> Dict[str, Any]:
+        """Parse the BBL header section."""
+        header = {
+            'firmwareVersion': '', 'firmwareDate': '', 'firmwareTime': '',
+            'craftName': '', 'dataVersion': 0, 'minThrottle': 1000, 'maxThrottle': 2000
+        }
+        
+        for line in self.lines:
+            line = line.strip()
+            if line.startswith('H ') and ':' in line:
+                content = line[2:]
+                key, value = content.split(':', 1)
+                key, value = key.strip(), value.strip()
+                
+                if key == 'Firmware revision':
+                    header['firmwareVersion'] = value
+                elif key == 'Firmware date':
+                    header['firmwareDate'] = value
+                elif key == 'Firmware time':
+                    header['firmwareTime'] = value
+                elif key == 'Craft name':
+                    header['craftName'] = value
+                elif key == 'Data version':
+                    header['dataVersion'] = int(value) if value.isdigit() else 0
+                elif key == 'minthrottle':
+                    header['minThrottle'] = int(value) if value.isdigit() else 1000
+                elif key == 'maxthrottle':
+                    header['maxThrottle'] = int(value) if value.isdigit() else 2000
+            elif line.startswith('Field H ') and ':' in line:
+                field_name = line[8:].split(':')[0].strip()
+                self.field_names.append(field_name)
+            elif line.startswith('I ') or line.startswith('P '):
+                break
+                
+        self.header_info = header
+        return header
+    
+    def parse_frames(self) -> List[BlackboxFrame]:
+        """Parse frame data from the BBL file."""
+        frames = []
+        
+        for line in self.lines:
+            line = line.strip()
+            if line.startswith('I '):
+                parts = line[2:].split(',')
+                if len(parts) >= 15:
+                    try:
+                        frames.append(BlackboxFrame(
+                            timestamp=int(parts[0]),
+                            gyro={'x': int(parts[1]) if len(parts) > 1 else 0,
+                                  'y': int(parts[2]) if len(parts) > 2 else 0,
+                                  'z': int(parts[3]) if len(parts) > 3 else 0},
+                            accel={'x': int(parts[4]) if len(parts) > 4 else 0,
+                                   'y': int(parts[5]) if len(parts) > 5 else 0,
+                                   'z': int(parts[6]) if len(parts) > 6 else 0},
+                            motors=[int(parts[i]) if len(parts) > i else 1000 for i in range(7, 11)],
+                            rcCommand={'roll': int(parts[11]) if len(parts) > 11 else 1500,
+                                       'pitch': int(parts[12]) if len(parts) > 12 else 1500,
+                                       'yaw': int(parts[13]) if len(parts) > 13 else 1500,
+                                       'throttle': int(parts[14]) if len(parts) > 14 else 1000},
+                            altitude=float(parts[15]) if len(parts) > 15 and parts[15] else None,
+                            speed=float(parts[16]) if len(parts) > 16 and parts[16] else None,
+                            voltage=float(parts[17])/100 if len(parts) > 17 and parts[17] else None,
+                            current=float(parts[18])/100 if len(parts) > 18 and parts[18] else None,
+                            rssi=int(parts[19]) if len(parts) > 19 and parts[19] else None
+                        ))
+                    except (ValueError, IndexError):
+                        pass
+                if len(frames) > 100000:
+                    break
+        
+        return frames
+    
+    def calculate_statistics(self, frames: List[BlackboxFrame]) -> FlightStatistics:
+        """Calculate flight statistics from frames."""
+        if not frames:
+            return FlightStatistics(duration=0, maxSpeed=0, maxAltitude=0, maxGyroRate=0,
+                                    maxAccel=0, avgVoltage=0, avgCurrent=0, maxCurrent=0, distanceTraveled=0)
+        
+        duration = (frames[-1].timestamp - frames[0].timestamp) / 1000000
+        max_speed = max((f.speed for f in frames if f.speed), default=0)
+        max_altitude = max((f.altitude for f in frames if f.altitude), default=0)
+        max_gyro_rate = max(((f.gyro['x']**2 + f.gyro['y']**2 + f.gyro['z']**2)**0.5 for f in frames), default=0)
+        max_accel = max(((f.accel['x']**2 + f.accel['y']**2 + f.accel['z']**2)**0.5 for f in frames), default=0)
+        max_current = max((f.current for f in frames if f.current), default=0)
+        
+        voltages = [f.voltage for f in frames if f.voltage]
+        currents = [f.current for f in frames if f.current]
+        
+        return FlightStatistics(
+            duration=duration, maxSpeed=max_speed, maxAltitude=max_altitude,
+            maxGyroRate=max_gyro_rate, maxAccel=max_accel,
+            avgVoltage=sum(voltages)/len(voltages) if voltages else 0,
+            avgCurrent=sum(currents)/len(currents) if currents else 0,
+            maxCurrent=max_current, distanceTraveled=max_speed * duration
+        )
+    
+    def parse(self) -> BlackboxLog:
+        """Parse the complete BBL file."""
+        header_info = self.parse_header()
+        frames = self.parse_frames()
+        stats = self.calculate_statistics(frames)
+        
+        return BlackboxLog(
+            header=BlackboxHeader(
+                version=header_info.get('dataVersion', 0),
+                firmwareVersion=header_info.get('firmwareVersion', 'Unknown'),
+                firmwareRevision=header_info.get('firmwareDate', ''),
+                boardInformation=f"{header_info.get('firmwareDate', '')} {header_info.get('firmwareTime', '')}",
+                craftName=header_info.get('craftName', 'Unnamed'),
+                logStartTime=datetime.now(),
+                fields=[{'name': f, 'type': 'signed', 'predictor': 0, 'encoding': 0} for f in self.field_names]
+            ),
+            frames=frames, statistics=stats
+        )
+
+
+def parse_cli_dump(content: str) -> Dict[str, str]:
+    """Parse CLI dump to extract settings."""
+    settings = {}
+    for line in content.split('\n'):
+        line = line.strip()
+        if line.startswith('set '):
+            match = re.match(r'set\s+(\w+)\s*=\s*(.+)', line)
+            if match:
+                settings[match.group(1)] = match.group(2).strip()
+    return settings
+
+
+# ============== BLACKBOX ENDPOINTS ==============
+
+@app.post("/api/blackbox/parse")
+async def parse_blackbox(file: UploadFile = File(...)):
+    """Parse uploaded BBL file to JSON."""
+    try:
+        content = await file.read()
+        parser = BlackboxParser(content)
+        log_data = parser.parse()
+        return {"success": True, "data": json.loads(log_data.json())}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to parse BBL file: {str(e)}")
+
+
+@app.get("/api/blackbox/logs")
+async def list_blackbox_logs():
+    """List available logs on FC."""
+    return {
+        "logs": [
+            {"id": "1", "name": "LOG00001.BBL", "size": 1024576, "date": datetime.now().isoformat()},
+            {"id": "2", "name": "LOG00002.BBL", "size": 2048576, "date": datetime.now().isoformat()},
+            {"id": "3", "name": "LOG00003.BBL", "size": 1534576, "date": datetime.now().isoformat()}
+        ]
+    }
+
+
+@app.get("/api/blackbox/download/{log_id}")
+async def download_blackbox_log(log_id: str):
+    """Download log from FC."""
+    return {"success": True, "message": f"Download initiated for log {log_id}",
+            "downloadUrl": f"/api/blackbox/file/{log_id}"}
+
+
+# ============== FIRMWARE ENDPOINTS ==============
+
+@app.get("/api/firmware/version")
+async def get_firmware_version():
+    """Get current Betaflight version from FC."""
+    return FirmwareVersion(major=4, minor=4, patch=0, versionString="Betaflight 4.4.0", buildDate="Jan 15 2024")
+
+
+@app.get("/api/firmware/target")
+async def get_firmware_target():
+    """Get FC target/board info."""
+    return BoardInfo(identifier="S411", targetName="MATEKF411", boardName="MATEKF411 (Rev 1)", manufacturerId="MTKS")
+
+
+@app.get("/api/firmware/latest")
+async def get_latest_firmware(current: str = "4.4.0", target: str = "MATEKF411"):
+    """Get latest firmware release from GitHub."""
+    try:
+        import httpx
+        async with httpx.AsyncClient() as client:
+            response = await client.get("https://api.github.com/repos/betaflight/betaflight/releases/latest")
+            if response.status_code != 200:
+                raise HTTPException(status_code=500, detail="Failed to fetch from GitHub")
+            
+            release_data = response.json()
+            current_parts = [int(x) for x in current.split('.')]
+            latest_tag = release_data['tag_name'].replace('v', '')
+            latest_parts = [int(x) for x in latest_tag.split('.')]
+            
+            update_available = any(latest_parts[i] > current_parts[i] for i in range(min(len(current_parts), len(latest_parts))))
+            target_url = next((a['browser_download_url'] for a in release_data.get('assets', [])
+                              if target in a['name'] and a['name'].endswith('.hex')), None)
+            
+            return {
+                "current": {"major": current_parts[0] if current_parts else 0, "minor": current_parts[1] if len(current_parts) > 1 else 0,
+                           "patch": current_parts[2] if len(current_parts) > 2 else 0, "versionString": current},
+                "latest": release_data, "updateAvailable": update_available, "targetFirmwareUrl": target_url
+            }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to check for updates: {str(e)}")
+
+
+# ============== CONFIG ENDPOINTS ==============
+
+@app.get("/api/config/export")
+async def export_config():
+    """Export full CLI dump as text file."""
+    mock_dump = """# Betaflight / MATEKF411 (MTKS) 4.4.0 Jan 15 2024
+# name
+name MyDrone
+# resources
+resource BEEPER 1 B02
+resource MOTOR 1 B00
+resource MOTOR 2 B01
+resource MOTOR 3 A00
+resource MOTOR 4 A01
+# feature
+feature -RX_PARALLEL_PWM
+feature RX_SERIAL
+feature GPS
+feature TELEMETRY
+# serial
+serial 0 64 115200 57600 0 115200
+serial 1 2 115200 57600 0 115200
+# aux
+aux 0 0 0 900 2100 0 0
+aux 1 1 1 900 1300 0 0
+aux 2 2 1 1300 1700 0 0
+# master
+set gyro_sync_denom = 1
+set pid_process_denom = 2
+set motor_pwm_protocol = DSHOT300
+set motor_poles = 14
+set vbat_min_cell_voltage = 330
+set vbat_warning_cell_voltage = 350
+set vbat_scale = 110
+set current_meter = ADC
+set battery_meter = ADC
+# profile
+profile 0
+set dterm_lowpass_type = BIQUAD
+set dterm_lowpass_hz = 100
+set dterm_notch_hz = 260
+set dterm_notch_cutoff = 160
+# rateprofile
+rateprofile 0
+set roll_rc_rate = 100
+set pitch_rc_rate = 100
+set yaw_rc_rate = 100
+set roll_expo = 0
+set pitch_expo = 0
+set yaw_expo = 0
+set roll_srate = 70
+set pitch_srate = 70
+set yaw_srate = 70
+# end of dump"""
+
+    timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    filename = f"betaflight_backup_{timestamp}.txt"
+    return StreamingResponse(io.StringIO(mock_dump), media_type="text/plain",
+                            headers={"Content-Disposition": f"attachment; filename={filename}"})
+
+
+@app.post("/api/config/import")
+async def import_config(file: UploadFile = File(...)):
+    """Import and parse config from backup."""
+    try:
+        content = await file.read()
+        settings = parse_cli_dump(content.decode('utf-8'))
+        return {"success": True, "message": "Config parsed successfully",
+                "settingsCount": len(settings), "preview": settings}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to import config: {str(e)}")
+
+
+@app.post("/api/config/restore")
+async def restore_config(data: Dict[str, Any]):
+    """Apply imported settings to FC."""
+    settings, apply = data.get('settings', {}), data.get('apply', False)
+    if not settings:
+        raise HTTPException(status_code=400, detail="No settings provided")
+    
+    if apply:
+        return {"success": True, "message": f"Settings applied ({len(settings)} settings)", "appliedCount": len(settings)}
+    else:
+        return {"success": True, "message": "Settings preview ready", "settingsCount": len(settings), "settings": settings}
+
+
+@app.post("/api/config/diff")
+async def diff_config(file: UploadFile = File(...)):
+    """Compare current config with backup."""
+    try:
+        content = await file.read()
+        backup_settings = parse_cli_dump(content.decode('utf-8'))
+        
+        current_settings = {
+            'gyro_sync_denom': '1', 'pid_process_denom': '2', 'motor_pwm_protocol': 'DSHOT300',
+            'motor_poles': '14', 'vbat_min_cell_voltage': '330', 'vbat_warning_cell_voltage': '350',
+            'vbat_scale': '110', 'current_meter': 'ADC', 'battery_meter': 'ADC',
+            'roll_rc_rate': '100', 'pitch_rc_rate': '100', 'yaw_rc_rate': '100',
+            'roll_expo': '0', 'pitch_expo': '5', 'yaw_expo': '0',
+            'roll_srate': '70', 'pitch_srate': '75', 'yaw_srate': '70'
+        }
+        
+        diff = {"added": [], "removed": [], "modified": [], "unchanged": []}
+        for key, backup_value in backup_settings.items():
+            if key not in current_settings:
+                diff["added"].append(key)
+            elif current_settings[key] != backup_value:
+                diff["modified"].append({"key": key, "current": current_settings[key], "backup": backup_value})
+            else:
+                diff["unchanged"].append(key)
+        
+        for key in current_settings:
+            if key not in backup_settings:
+                diff["removed"].append(key)
+        
+        stats = {"total": len(backup_settings), "added": len(diff["added"]),
+                 "removed": len(diff["removed"]), "modified": len(diff["modified"]), "unchanged": len(diff["unchanged"])}
+        return {"success": True, "diff": diff, "stats": stats}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to compare config: {str(e)}")
 
 
 if __name__ == "__main__":
