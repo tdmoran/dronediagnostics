@@ -1,43 +1,29 @@
 # Dependencies
 node_modules/
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
 
-# Next.js
+# Build outputs
+dist/
 .next/
 out/
+
+# Uploads
+uploads/
 
 # Environment
 .env
 .env.local
-.env.*.local
 
 # IDE
 .vscode/
 .idea/
-*.swp
-*.swo
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Python
-*.egg-info/
-dist/
-build/
-
 # Logs
 *.log
 npm-debug.log*
 
-# Testing
-coverage/
-.pytest_cache/
-
-# Misc
-*.pem
-.vercel
+# TypeScript
+*.tsbuildinfo
