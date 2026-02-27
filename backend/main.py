@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 from msp.protocol import MSPProtocol, GPSPosition
 from msp.codes import MSP_RAW_GPS, MSP_COMP_GPS, MSP_GPS_DATA
+from msp.serial import MSPSerialConnection, create_serial_connection, get_serial_connection
 
 
 # Global protocol instance
@@ -265,10 +266,76 @@ async def websocket_telemetry(websocket: WebSocket):
         print(f"WebSocket error: {e}")
 
 
+# Serial connection endpoints
+@app.get("/api/serial/ports")
+async def list_serial_ports():
+    """List available serial ports."""
+    ports = MSPSerialConnection.list_ports()
+    return {"ports": ports, "count": len(ports)}
+
+
+@app.post("/api/serial/connect")
+async def connect_serial(port: str, baudrate: int = 115200):
+    """Connect to serial port for MSP communication."""
+    conn = create_serial_connection(port, baudrate)
+    
+    if conn.connect():
+        # Start polling in background
+        asyncio.create_task(conn.start_polling())
+        
+        # Add callback to update global MSP data
+        def on_gps_data(data_type, data):
+            if data_type == 'gps':
+                msp.current_gps = data
+        
+        conn.add_callback(on_gps_data)
+        
+        return {
+            "connected": True,
+            "port": port,
+            "baudrate": baudrate
+        }
+    else:
+        return {
+            "connected": False,
+            "error": f"Failed to connect to {port}"
+        }
+
+
+@app.post("/api/serial/disconnect")
+async def disconnect_serial():
+    """Disconnect from serial port."""
+    conn = get_serial_connection()
+    if conn:
+        conn.disconnect()
+        return {"connected": False}
+    return {"connected": False, "message": "No active connection"}
+
+
+@app.get("/api/serial/status")
+async def serial_status():
+    """Get serial connection status."""
+    conn = get_serial_connection()
+    if conn and conn.serial and conn.serial.is_open:
+        return {
+            "connected": True,
+            "port": conn.port,
+            "baudrate": conn.baudrate
+        }
+    return {"connected": False}
+
+
 @app.get("/api/health")
 async def health_check():
     """Health check endpoint."""
-    return {"status": "healthy", "connected_clients": len(connected_clients)}
+    conn = get_serial_connection()
+    serial_status = conn.serial.is_open if conn and conn.serial else False
+    
+    return {
+        "status": "healthy",
+        "connected_clients": len(connected_clients),
+        "serial_connected": serial_status
+    }
 
 
 if __name__ == "__main__":
