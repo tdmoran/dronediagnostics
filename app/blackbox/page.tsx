@@ -15,7 +15,7 @@ import {
 } from 'recharts';
 import { BlackboxLog, BlackboxFrame, FlightStatistics } from '../../types/blackbox';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export default function BlackboxPage() {
   const [logData, setLogData] = useState<BlackboxLog | null>(null);

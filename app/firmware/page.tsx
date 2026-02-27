@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { FirmwareInfo, FirmwareUpdateInfo, GitHubRelease } from '../../types/firmware';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export default function FirmwarePage() {
   const [firmwareInfo, setFirmwareInfo] = useState<FirmwareInfo | null>(null);
