@@ -5,6 +5,7 @@ import { useTelemetry } from '@/hooks/useTelemetry';
 import { GPSStatusIndicator } from '@/components/GPSStatusIndicator';
 import { GPSStatsPanel } from '@/components/GPSStatsPanel';
 import { GPSCoordinates } from '@/components/GPSCoordinates';
+import { SerialConnectionManager } from '@/components/SerialConnectionManager';
 import { useEffect, useState } from 'react';
 import { GPSStatus } from '@/types/gps';
 import { Activity, Wifi, WifiOff } from 'lucide-react';
@@ -88,10 +89,11 @@ export default function GPSPage() {
         <GPSMap gps={gpsData} height="400px" />
       </div>
 
-      {/* Stats and Coordinates */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Stats, Coordinates, and Serial Connection */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <GPSStatsPanel gps={gpsData} />
         <GPSCoordinates gps={gpsData} />
+        <SerialConnectionManager />
       </div>
 
       {/* Debug Info */}
