@@ -82,3 +82,56 @@ export function useToast() {
   }
   return context
 }
+
+// Convenience hook for connection-related toasts
+export function useConnectionToasts() {
+  const { success, error, info } = useToast()
+
+  const showConnected = React.useCallback((port: string) => {
+    success("Connected", `Connected to ${port}`)
+  }, [success])
+
+  const showDisconnected = React.useCallback(() => {
+    info("Disconnected", "Serial connection closed")
+  }, [info])
+
+  const showConnectionFailed = React.useCallback((reason: string) => {
+    error("Connection Failed", reason)
+  }, [error])
+
+  const showCommandSent = React.useCallback((command: string) => {
+    info("Command Sent", `Sending: ${command}`)
+  }, [info])
+
+  const showCommandTimeout = React.useCallback(() => {
+    error("Command Timeout", "The command timed out. Check your connection.")
+  }, [error])
+
+  const showSettingsSaved = React.useCallback(() => {
+    success("Settings Saved", "Your changes have been saved successfully")
+  }, [success])
+
+  const showCalibrationStarted = React.useCallback((type: string) => {
+    info("Calibrating...", `${type} calibration in progress`)
+  }, [info])
+
+  const showDownloadStarted = React.useCallback((filename: string) => {
+    info("Downloading...", `Downloading ${filename}`)
+  }, [info])
+
+  const showDownloadComplete = React.useCallback((filename: string) => {
+    success("Download Complete", `${filename} downloaded successfully`)
+  }, [success])
+
+  return {
+    showConnected,
+    showDisconnected,
+    showConnectionFailed,
+    showCommandSent,
+    showCommandTimeout,
+    showSettingsSaved,
+    showCalibrationStarted,
+    showDownloadStarted,
+    showDownloadComplete,
+  }
+}
