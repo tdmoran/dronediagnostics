@@ -3,7 +3,6 @@
 import { useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import { Icon } from 'leaflet';
-import 'leaflet/dist/leaflet.css';
 import { GPSData } from '@/types/gps';
 
 // Fix Leaflet icon issues in Next.js
