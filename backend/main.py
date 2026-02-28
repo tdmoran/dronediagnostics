@@ -8,10 +8,14 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Optional, Set, Dict, List, Any
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.security import HTTPBasic
 from pydantic import BaseModel
+import time
+from collections import defaultdict
 
 from msp.protocol import MSPProtocol, GPSPosition
 from msp.codes import (
@@ -745,6 +749,50 @@ async def diff_config(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=f"Failed to compare config: {str(e)}")
 
 
+# Security: Rate limiting storage
+rate_limit_storage = defaultdict(list)
+RATE_LIMIT_REQUESTS = 100  # requests
+RATE_LIMIT_WINDOW = 60     # seconds
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    """Add security headers to all responses."""
+    response = await call_next(request)
+    
+    # Security headers
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Content-Security-Policy"] = "default-src 'self'"
+    
+    return response
+
+@app.middleware("http")
+async def rate_limit(request: Request, call_next):
+    """Simple rate limiting per IP."""
+    client_ip = request.client.host if request.client else "unknown"
+    now = time.time()
+    
+    # Clean old entries
+    rate_limit_storage[client_ip] = [
+        req_time for req_time in rate_limit_storage[client_ip]
+        if now - req_time < RATE_LIMIT_WINDOW
+    ]
+    
+    # Check limit
+    if len(rate_limit_storage[client_ip]) >= RATE_LIMIT_REQUESTS:
+        return JSONResponse(
+            status_code=429,
+            content={"error": "Rate limit exceeded. Try again later."}
+        )
+    
+    # Add current request
+    rate_limit_storage[client_ip].append(now)
+    
+    return await call_next(request)
+
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="127.0.0.1", port=8000)  # Changed from 0.0.0.0 for security
