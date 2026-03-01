@@ -12,7 +12,7 @@ interface PageProgressProps {
 
 function PageProgressInner({
   className,
-  color = "bg-blue-500",
+  color = "bg-[#ffbb00]",
   height = 3,
 }: PageProgressProps) {
   const [progress, setProgress] = React.useState(0)
@@ -70,9 +70,9 @@ function PageProgressInner({
           className={`fixed top-0 left-0 right-0 z-[100] ${className}`}
           style={{ height }}
         >
-          <div className="absolute inset-0 bg-gray-800/30" />
+          <div className="absolute inset-0 bg-[#333]/30" />
           <motion.div
-            className={`h-full ${color} shadow-[0_0_10px_rgba(59,130,246,0.5)]`}
+            className={`h-full ${color} shadow-[0_0_10px_rgba(255,187,0,0.5)]`}
             initial={{ width: "0%" }}
             animate={{ width: `${progress}%` }}
             transition={{ width: { duration: 0.3, ease: "easeOut" } }}
@@ -119,9 +119,9 @@ export function LoadingSpinner({
   return (
     <div className={`flex flex-col items-center justify-center gap-3 ${className}`}>
       <div className={`relative ${sizeClasses[size]}`}>
-        <div className="absolute inset-0 rounded-full border-2 border-gray-700" />
+        <div className="absolute inset-0 rounded-full border-2 border-[#333]" />
         <motion.div
-          className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-500"
+          className="absolute inset-0 rounded-full border-2 border-transparent border-t-[#ffbb00]"
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
         />
@@ -130,7 +130,7 @@ export function LoadingSpinner({
           animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
           transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
         >
-          <div className="w-2 h-2 bg-blue-500 rounded-full" />
+          <div className="w-2 h-2 bg-[#ffbb00] rounded-full" />
         </motion.div>
       </div>
       {text && (
@@ -150,7 +150,7 @@ interface FullPageLoaderProps {
 
 export function FullPageLoader({ text = "Loading...", subtext }: FullPageLoaderProps) {
   return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+    <div className="min-h-screen bg-[#141414] flex items-center justify-center">
       <div className="text-center">
         <LoadingSpinner size="xl" />
         <motion.h2

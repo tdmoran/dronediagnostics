@@ -78,7 +78,7 @@ function getStatusBadge(status: string) {
 // Skeleton components for loading states
 function HealthScoreSkeleton() {
   return (
-    <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
+    <div className="bg-[#1f1f1f] rounded-[4px] border border-[#333] p-6">
       <div className="flex items-center justify-between mb-4">
         <Skeleton className="h-6 w-32" />
         <Skeleton className="h-8 w-16" />
@@ -96,7 +96,7 @@ function HealthScoreSkeleton() {
 
 function HardwareStatusSkeleton() {
   return (
-    <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
+    <div className="bg-[#1f1f1f] rounded-[4px] border border-[#333] p-6">
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
         {Array.from({ length: 5 }).map((_, i) => (
           <SkeletonStatCard key={i} />
@@ -212,7 +212,7 @@ export default function DiagnosePage() {
           hardwareReport.overallHealth >= 90
             ? "bg-green-500"
             : hardwareReport.overallHealth >= 70
-            ? "bg-blue-500"
+            ? "bg-[#ffbb00]"
             : hardwareReport.overallHealth >= 50
             ? "bg-yellow-500"
             : "bg-red-500",
@@ -224,7 +224,7 @@ export default function DiagnosePage() {
       {/* Header */}
       <div className="page-header">
         <h1 className="text-xl lg:text-2xl font-bold text-white">Drone Diagnostics</h1>
-        <p className="text-gray-400 mt-1 text-sm lg:text-base">
+        <p className="text-[#8c8c8c] mt-1 text-sm lg:text-base">
           Analyze hardware status and diagnose flight issues
         </p>
       </div>
@@ -233,13 +233,13 @@ export default function DiagnosePage() {
       {hardwareLoading ? (
         <HealthScoreSkeleton />
       ) : healthStatus ? (
-        <div className="bg-gray-900 rounded-xl border border-gray-800 p-5 lg:p-6">
+        <div className="bg-[#1f1f1f] rounded-[4px] border border-[#333] p-5 lg:p-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
             <div className="flex items-center gap-3">
-              <Activity className="h-6 w-6 text-blue-500" />
+              <Activity className="h-6 w-6 text-[#ffbb00]" />
               <div>
                 <h3 className="font-semibold text-white">Health Score</h3>
-                <p className="text-sm text-gray-400 capitalize">{healthStatus.status}</p>
+                <p className="text-sm text-[#8c8c8c] capitalize">{healthStatus.status}</p>
               </div>
             </div>
             <div className="text-left sm:text-right">
@@ -247,7 +247,7 @@ export default function DiagnosePage() {
               <span className="text-gray-400">/100</span>
             </div>
           </div>
-          <div className="h-3 bg-gray-800 rounded-full overflow-hidden">
+          <div className="h-3 bg-[#242424] rounded-full overflow-hidden">
             <div
               className={`h-full ${healthStatus.color} transition-all duration-500`}
               style={{ width: `${healthStatus.score}%` }}
@@ -263,15 +263,15 @@ export default function DiagnosePage() {
       ) : null}
 
       {/* Hardware Status Grid */}
-      <div className="bg-gray-900 rounded-xl border border-gray-800">
-        <div className="p-5 lg:p-6 border-b border-gray-800">
+      <div className="bg-[#1f1f1f] rounded-[4px] border border-[#333]">
+        <div className="p-5 lg:p-6 border-b border-[#333]">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                <Cpu className="h-5 w-5 text-blue-500" />
+                <Cpu className="h-5 w-5 text-[#ffbb00]" />
                 Hardware Status
               </h2>
-              <p className="text-sm text-gray-400 mt-1">
+              <p className="text-sm text-[#8c8c8c] mt-1">
                 Automatic hardware validation results
               </p>
             </div>
@@ -315,17 +315,17 @@ export default function DiagnosePage() {
                   </div>
                   <div className="text-xs text-red-500">Failed</div>
                 </div>
-                <div className="text-center p-3 lg:p-4 bg-gray-800/50 border border-gray-700 rounded-lg">
-                  <div className="text-xl lg:text-2xl font-bold text-gray-400">
+                <div className="text-center p-3 lg:p-4 bg-[#242424] border border-[#333] rounded-lg">
+                  <div className="text-xl lg:text-2xl font-bold text-[#8c8c8c]">
                     {hardwareReport.summary.notDetected}
                   </div>
                   <div className="text-xs text-gray-500">Not Detected</div>
                 </div>
-                <div className="text-center p-3 lg:p-4 bg-blue-950/30 border border-blue-900 rounded-lg">
-                  <div className="text-xl lg:text-2xl font-bold text-blue-400">
+                <div className="text-center p-3 lg:p-4 bg-[rgba(255,187,0,0.1)] border border-[#ffbb00]/30 rounded-lg">
+                  <div className="text-xl lg:text-2xl font-bold text-[#ffbb00]">
                     {hardwareReport.checks.length}
                   </div>
-                  <div className="text-xs text-blue-500">Total Checks</div>
+                  <div className="text-xs text-[#ffbb00]">Total Checks</div>
                 </div>
               </div>
 
@@ -334,7 +334,7 @@ export default function DiagnosePage() {
                 {hardwareReport.checks.map((check: any) => (
                   <div
                     key={check.name}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between p-3 lg:p-4 bg-gray-800/30 border border-gray-800 rounded-lg hover:bg-gray-800/50 transition-colors gap-3"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between p-3 lg:p-4 bg-[#242424]/50 border border-[#333] rounded-lg hover:bg-[#242424] transition-colors gap-3"
                   >
                     <div className="flex items-start gap-3">
                       {getStatusIcon(check.status)}
@@ -342,7 +342,7 @@ export default function DiagnosePage() {
                         <div className="font-medium text-white text-sm lg:text-base">
                           {check.name}
                         </div>
-                        <div className="text-xs lg:text-sm text-gray-400">
+                        <div className="text-xs lg:text-sm text-[#8c8c8c]">
                           {check.message}
                         </div>
                         {check.details && (
@@ -373,12 +373,12 @@ export default function DiagnosePage() {
       </div>
 
       {/* Quick Fixes */}
-      <div className="bg-gray-900 rounded-xl border border-gray-800 p-5 lg:p-6">
+      <div className="bg-[#1f1f1f] rounded-[4px] border border-[#333] p-5 lg:p-6">
         <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
           <Zap className="h-5 w-5 text-yellow-500" />
           Quick Fixes
         </h2>
-        <p className="text-sm text-gray-400 mb-4">
+        <p className="text-sm text-[#8c8c8c] mb-4">
           Common troubleshooting actions
         </p>
         <div className="flex flex-wrap gap-3">
@@ -410,12 +410,12 @@ export default function DiagnosePage() {
       </div>
 
       {/* Problem Diagnosis */}
-      <div className="bg-gray-900 rounded-xl border border-gray-800 p-5 lg:p-6">
+      <div className="bg-[#1f1f1f] rounded-[4px] border border-[#333] p-5 lg:p-6">
         <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-          <Activity className="h-5 w-5 text-blue-500" />
+          <Activity className="h-5 w-5 text-[#ffbb00]" />
           Problem Diagnosis
         </h2>
-        <p className="text-sm text-gray-400 mb-4">
+        <p className="text-sm text-[#8c8c8c] mb-4">
           Select a problem to get diagnostic help
         </p>
 
@@ -494,7 +494,7 @@ export default function DiagnosePage() {
                 {diagnosis.causes.map((cause: any, index: number) => (
                   <div
                     key={cause.id}
-                    className="bg-gray-800/50 border-l-4 border-l-blue-500 rounded-lg p-4 lg:p-5"
+                    className="bg-[#242424] border-l-4 border-l-[#ffbb00] rounded-lg p-4 lg:p-5"
                   >
                     <div className="flex items-start justify-between mb-3 gap-3">
                       <div className="flex flex-wrap items-center gap-2">
@@ -513,7 +513,7 @@ export default function DiagnosePage() {
                       </div>
                     </div>
 
-                    <p className="text-gray-400 mb-4 text-sm lg:text-base">
+                    <p className="text-[#8c8c8c] mb-4 text-sm lg:text-base">
                       {cause.description}
                     </p>
 
@@ -539,7 +539,7 @@ export default function DiagnosePage() {
                           href={cause.wikiLink}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center text-sm text-blue-400 hover:text-blue-300 hover:underline"
+                          className="inline-flex items-center text-sm text-[#ffbb00] hover:text-[#e6a800] hover:underline"
                         >
                           View Betaflight Wiki →
                         </a>
@@ -555,7 +555,7 @@ export default function DiagnosePage() {
 
       {/* Fix Dialog */}
       <Dialog open={fixDialog.open} onOpenChange={(open) => setFixDialog({ ...fixDialog, open })}>
-        <DialogContent className="bg-gray-900 border-gray-800 text-white">
+        <DialogContent className="bg-[#1f1f1f] border-[#333] text-white">
           <DialogHeader>
             <DialogTitle className="text-white">{fixDialog.title}</DialogTitle>
             <DialogDescription className="text-gray-400">

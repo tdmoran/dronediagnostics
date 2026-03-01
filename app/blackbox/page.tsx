@@ -121,13 +121,13 @@ export default function BlackboxPage() {
       </div>
 
       {/* File Upload */}
-      <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 lg:p-6">
+      <div className="bg-[#1f1f1f] rounded-[4px] border border-[#333] p-4 lg:p-6">
         <h2 className="text-lg font-semibold text-white mb-4">Upload Log File</h2>
         <div
-          className={`border-2 border-dashed rounded-xl p-6 lg:p-12 text-center transition-colors ${
+          className={`border-2 border-dashed rounded-[4px] p-6 lg:p-12 text-center transition-colors ${
             isDragging
-              ? "border-blue-500 bg-blue-500/10"
-              : "border-gray-700 hover:border-gray-600"
+              ? "border-[#ffbb00] bg-[rgba(255,187,0,0.1)]"
+              : "border-[#333] hover:border-[#8c8c8c]"
           }`}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
@@ -167,29 +167,29 @@ export default function BlackboxPage() {
       {logData && (
         <>
           {/* Log Info */}
-          <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 lg:p-6">
+          <div className="bg-[#1f1f1f] rounded-[4px] border border-[#333] p-4 lg:p-6">
             <h2 className="text-lg font-semibold text-white mb-4">Log Information</h2>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
-                <div className="text-2xl font-bold text-blue-400">
+              <div className="bg-[#242424] rounded-lg p-4 border border-[#333]">
+                <div className="text-2xl font-bold text-[#ffbb00]">
                   {logData.header.firmwareVersion || "Unknown"}
                 </div>
                 <div className="text-sm text-gray-500">Firmware</div>
               </div>
-              <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
-                <div className="text-2xl font-bold text-blue-400">
+              <div className="bg-[#242424] rounded-lg p-4 border border-[#333]">
+                <div className="text-2xl font-bold text-[#ffbb00]">
                   {logData.header.craftName || "Unnamed"}
                 </div>
                 <div className="text-sm text-gray-500">Craft Name</div>
               </div>
-              <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
-                <div className="text-2xl font-bold text-blue-400">
+              <div className="bg-[#242424] rounded-lg p-4 border border-[#333]">
+                <div className="text-2xl font-bold text-[#ffbb00]">
                   {logData.frames.length.toLocaleString()}
                 </div>
                 <div className="text-sm text-gray-500">Frames</div>
               </div>
-              <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
-                <div className="text-2xl font-bold text-blue-400">
+              <div className="bg-[#242424] rounded-lg p-4 border border-[#333]">
+                <div className="text-2xl font-bold text-[#ffbb00]">
                   {logData.header.fields.length}
                 </div>
                 <div className="text-sm text-gray-500">Fields</div>
@@ -198,7 +198,7 @@ export default function BlackboxPage() {
           </div>
 
           {/* Tabs */}
-          <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 lg:p-6">
+          <div className="bg-[#1f1f1f] rounded-[4px] border border-[#333] p-4 lg:p-6">
             {/* Scrollable tabs on mobile */}
             <div className="flex gap-2 overflow-x-auto pb-2 lg:pb-0 mb-4 scrollbar-hide">
               {[
@@ -212,8 +212,8 @@ export default function BlackboxPage() {
                   onClick={() => setActiveTab(tab.id as typeof activeTab)}
                   className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors min-h-[44px] ${
                     activeTab === tab.id
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                      ? "bg-[#ffbb00] text-[#141414]"
+                      : "bg-[#242424] text-[#8c8c8c] hover:bg-[#333]"
                   }`}
                 >
                   {tab.label}
@@ -228,19 +228,19 @@ export default function BlackboxPage() {
                   <h3 className="text-base lg:text-lg font-medium text-white mb-3">
                     Gyroscope Data (deg/s)
                   </h3>
-                  <div className="h-[250px] lg:h-[300px] bg-gray-950 rounded-lg border border-gray-800 p-4">
+                  <div className="h-[250px] lg:h-[300px] bg-[#141414] rounded-lg border border-[#333] p-4">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                        <XAxis dataKey="time" stroke="#64748b" fontSize={12} />
-                        <YAxis stroke="#64748b" fontSize={12} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#333333" />
+                        <XAxis dataKey="time" stroke="#8c8c8c" fontSize={12} />
+                        <YAxis stroke="#8c8c8c" fontSize={12} />
                         <Tooltip
                           contentStyle={{
-                            backgroundColor: "#0f172a",
-                            border: "1px solid #334155",
-                            borderRadius: "8px",
+                            backgroundColor: "#1f1f1f",
+                            border: "1px solid #333333",
+                            borderRadius: "4px",
                           }}
-                          labelStyle={{ color: "#f8fafc" }}
+                          labelStyle={{ color: "#f2f2f2" }}
                         />
                         <Legend />
                         <Line
@@ -276,19 +276,19 @@ export default function BlackboxPage() {
                   <h3 className="text-base lg:text-lg font-medium text-white mb-3">
                     Accelerometer Data (g)
                   </h3>
-                  <div className="h-[250px] lg:h-[300px] bg-gray-950 rounded-lg border border-gray-800 p-4">
+                  <div className="h-[250px] lg:h-[300px] bg-[#141414] rounded-lg border border-[#333] p-4">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                        <XAxis dataKey="time" stroke="#64748b" fontSize={12} />
-                        <YAxis stroke="#64748b" fontSize={12} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#333333" />
+                        <XAxis dataKey="time" stroke="#8c8c8c" fontSize={12} />
+                        <YAxis stroke="#8c8c8c" fontSize={12} />
                         <Tooltip
                           contentStyle={{
-                            backgroundColor: "#0f172a",
-                            border: "1px solid #334155",
-                            borderRadius: "8px",
+                            backgroundColor: "#1f1f1f",
+                            border: "1px solid #333333",
+                            borderRadius: "4px",
                           }}
-                          labelStyle={{ color: "#f8fafc" }}
+                          labelStyle={{ color: "#f2f2f2" }}
                         />
                         <Legend />
                         <Line
@@ -328,19 +328,19 @@ export default function BlackboxPage() {
                 <h3 className="text-base lg:text-lg font-medium text-white mb-3">
                   Motor Outputs
                 </h3>
-                <div className="h-[250px] lg:h-[300px] bg-gray-950 rounded-lg border border-gray-800 p-4">
+                <div className="h-[250px] lg:h-[300px] bg-[#141414] rounded-lg border border-[#333] p-4">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                      <XAxis dataKey="time" stroke="#64748b" fontSize={12} />
-                      <YAxis stroke="#64748b" fontSize={12} domain={[1000, 2000]} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#333333" />
+                      <XAxis dataKey="time" stroke="#8c8c8c" fontSize={12} />
+                      <YAxis stroke="#8c8c8c" fontSize={12} domain={[1000, 2000]} />
                       <Tooltip
                         contentStyle={{
-                          backgroundColor: "#0f172a",
-                          border: "1px solid #334155",
-                          borderRadius: "8px",
+                          backgroundColor: "#1f1f1f",
+                          border: "1px solid #333333",
+                          borderRadius: "4px",
                         }}
-                        labelStyle={{ color: "#f8fafc" }}
+                        labelStyle={{ color: "#f2f2f2" }}
                       />
                       <Legend />
                       <Line
@@ -387,19 +387,19 @@ export default function BlackboxPage() {
                 <h3 className="text-base lg:text-lg font-medium text-white mb-3">
                   RC Commands
                 </h3>
-                <div className="h-[250px] lg:h-[300px] bg-gray-950 rounded-lg border border-gray-800 p-4">
+                <div className="h-[250px] lg:h-[300px] bg-[#141414] rounded-lg border border-[#333] p-4">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                      <XAxis dataKey="time" stroke="#64748b" fontSize={12} />
-                      <YAxis stroke="#64748b" fontSize={12} domain={[1000, 2000]} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#333333" />
+                      <XAxis dataKey="time" stroke="#8c8c8c" fontSize={12} />
+                      <YAxis stroke="#8c8c8c" fontSize={12} domain={[1000, 2000]} />
                       <Tooltip
                         contentStyle={{
-                          backgroundColor: "#0f172a",
-                          border: "1px solid #334155",
-                          borderRadius: "8px",
+                          backgroundColor: "#1f1f1f",
+                          border: "1px solid #333333",
+                          borderRadius: "4px",
                         }}
-                        labelStyle={{ color: "#f8fafc" }}
+                        labelStyle={{ color: "#f2f2f2" }}
                       />
                       <Legend />
                       <Line
@@ -447,50 +447,50 @@ export default function BlackboxPage() {
                   Flight Statistics
                 </h3>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
-                    <div className="text-2xl font-bold text-blue-400">
+                  <div className="bg-[#242424] rounded-lg p-4 border border-[#333]">
+                    <div className="text-2xl font-bold text-[#ffbb00]">
                       {logData.statistics.duration.toFixed(1)}s
                     </div>
                     <div className="text-sm text-gray-500">Duration</div>
                   </div>
-                  <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
-                    <div className="text-2xl font-bold text-blue-400">
+                  <div className="bg-[#242424] rounded-lg p-4 border border-[#333]">
+                    <div className="text-2xl font-bold text-[#ffbb00]">
                       {(logData.statistics.maxSpeed * 3.6).toFixed(1)} km/h
                     </div>
                     <div className="text-sm text-gray-500">Max Speed</div>
                   </div>
-                  <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
-                    <div className="text-2xl font-bold text-blue-400">
+                  <div className="bg-[#242424] rounded-lg p-4 border border-[#333]">
+                    <div className="text-2xl font-bold text-[#ffbb00]">
                       {logData.statistics.maxAltitude.toFixed(1)}m
                     </div>
                     <div className="text-sm text-gray-500">Max Altitude</div>
                   </div>
-                  <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
-                    <div className="text-2xl font-bold text-blue-400">
+                  <div className="bg-[#242424] rounded-lg p-4 border border-[#333]">
+                    <div className="text-2xl font-bold text-[#ffbb00]">
                       {(logData.statistics.maxGyroRate / 1000).toFixed(1)}°/s
                     </div>
                     <div className="text-sm text-gray-500">Max Gyro Rate</div>
                   </div>
-                  <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
-                    <div className="text-2xl font-bold text-blue-400">
+                  <div className="bg-[#242424] rounded-lg p-4 border border-[#333]">
+                    <div className="text-2xl font-bold text-[#ffbb00]">
                       {(logData.statistics.maxAccel / 1000).toFixed(2)}g
                     </div>
                     <div className="text-sm text-gray-500">Max Acceleration</div>
                   </div>
-                  <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
-                    <div className="text-2xl font-bold text-blue-400">
+                  <div className="bg-[#242424] rounded-lg p-4 border border-[#333]">
+                    <div className="text-2xl font-bold text-[#ffbb00]">
                       {logData.statistics.avgVoltage.toFixed(2)}V
                     </div>
                     <div className="text-sm text-gray-500">Avg Voltage</div>
                   </div>
-                  <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
-                    <div className="text-2xl font-bold text-blue-400">
+                  <div className="bg-[#242424] rounded-lg p-4 border border-[#333]">
+                    <div className="text-2xl font-bold text-[#ffbb00]">
                       {logData.statistics.avgCurrent.toFixed(1)}A
                     </div>
                     <div className="text-sm text-gray-500">Avg Current</div>
                   </div>
-                  <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
-                    <div className="text-2xl font-bold text-blue-400">
+                  <div className="bg-[#242424] rounded-lg p-4 border border-[#333]">
+                    <div className="text-2xl font-bold text-[#ffbb00]">
                       {logData.statistics.maxCurrent.toFixed(1)}A
                     </div>
                     <div className="text-sm text-gray-500">Max Current</div>

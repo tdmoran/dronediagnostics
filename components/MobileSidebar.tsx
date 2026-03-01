@@ -111,8 +111,8 @@ export function MobileSidebar({ className }: MobileSidebarProps) {
         className={cn(
           "lg:hidden fixed top-4 left-4 z-40",
           "h-11 w-11 min-h-[44px] min-w-[44px]", // Touch-friendly size
-          "bg-gray-900/80 backdrop-blur-sm border border-gray-800",
-          "hover:bg-gray-800",
+          "bg-[#1f1f1f]/80 backdrop-blur-sm border border-[#333]",
+          "hover:bg-[#242424]",
           className
         )}
         aria-label="Open menu"
@@ -142,12 +142,12 @@ export function MobileSidebar({ className }: MobileSidebarProps) {
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed top-0 left-0 bottom-0 w-[280px] bg-gray-950 z-50 lg:hidden"
+            className="fixed top-0 left-0 bottom-0 w-[280px] bg-[#141414] z-50 lg:hidden"
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-800">
+            <div className="flex items-center justify-between p-4 border-b border-[#333]">
               <h1 className="text-lg font-bold text-white flex items-center gap-2">
-                <Activity className="w-6 h-6 text-blue-500" />
+                <Activity className="w-6 h-6 text-[#ffbb00]" />
                 DroneDiagnostics
               </h1>
               <Button
@@ -173,11 +173,11 @@ export function MobileSidebar({ className }: MobileSidebarProps) {
                         href={item.href}
                         onClick={() => setIsOpen(false)}
                         className={cn(
-                          "flex items-center justify-between gap-3 px-4 py-3.5 rounded-xl transition-colors",
+                          "flex items-center justify-between gap-3 px-4 py-3.5 rounded-[4px] transition-colors",
                           "min-h-[48px]", // Touch-friendly
-                          isActive 
-                            ? "bg-blue-600 text-white" 
-                            : "text-gray-400 hover:bg-gray-900 hover:text-white"
+                          isActive
+                            ? "bg-[rgba(255,187,0,0.1)] text-[#ffbb00] border-l-[3px] border-l-[#ffbb00]"
+                            : "text-[#8c8c8c] hover:bg-[#242424] hover:text-[#f2f2f2]"
                         )}
                       >
                         <span className="flex items-center gap-3">
@@ -195,9 +195,9 @@ export function MobileSidebar({ className }: MobileSidebarProps) {
             </nav>
 
             {/* Footer */}
-            <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800">
+            <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-[#333]">
               <div className="flex items-center gap-3 text-sm text-gray-400">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                <div className="w-2 h-2 bg-[#96e212] rounded-full animate-pulse" />
                 <span>System Online</span>
               </div>
               <p className="text-xs text-gray-600 mt-2">v1.0.0</p>
@@ -227,7 +227,7 @@ export function MobileSwipeHint() {
       exit={{ opacity: 0 }}
       className="fixed bottom-4 left-1/2 -translate-x-1/2 z-30 lg:hidden"
     >
-      <div className="bg-gray-900/90 backdrop-blur-sm text-white text-xs px-4 py-2 rounded-full border border-gray-800 flex items-center gap-2">
+      <div className="bg-[#1f1f1f]/90 backdrop-blur-sm text-white text-xs px-4 py-2 rounded-full border border-[#333] flex items-center gap-2">
         <Menu className="w-4 h-4" />
         <span>Tap to open menu</span>
       </div>

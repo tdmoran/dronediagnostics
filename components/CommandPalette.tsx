@@ -283,7 +283,7 @@ export function CommandPalette({
       {keys.map((key, i) => (
         <kbd
           key={i}
-          className="px-1.5 py-0.5 text-xs bg-gray-800 border border-gray-700 rounded text-gray-400"
+          className="px-1.5 py-0.5 text-xs bg-[#242424] border border-[#333] rounded text-gray-400"
         >
           {key}
         </kbd>
@@ -293,9 +293,9 @@ export function CommandPalette({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl p-0 gap-0 bg-gray-900 border-gray-800">
+      <DialogContent className="max-w-2xl p-0 gap-0 bg-[#1f1f1f] border-[#333]">
         {/* Search Input */}
-        <div className="flex items-center gap-3 px-4 py-4 border-b border-gray-800">
+        <div className="flex items-center gap-3 px-4 py-4 border-b border-[#333]">
           <Search className="w-5 h-5 text-gray-500" />
           <input
             ref={inputRef}
@@ -330,7 +330,7 @@ export function CommandPalette({
                   <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     {category}
                     {category === "Navigation" && recentCommands.length > 0 && !searchQuery && (
-                      <span className="ml-2 text-blue-400">• Recent</span>
+                      <span className="ml-2 text-[#ffbb00]">• Recent</span>
                     )}
                   </div>
                   {cmds.map((command, cmdIndex) => {
@@ -344,16 +344,16 @@ export function CommandPalette({
                         onClick={() => handleCommandSelect(command)}
                         className={cn(
                           "w-full px-4 py-3 flex items-center gap-3 text-left transition-colors",
-                          isSelected 
-                            ? "bg-blue-600 text-white" 
-                            : "text-gray-300 hover:bg-gray-800"
+                          isSelected
+                            ? "bg-[rgba(255,187,0,0.15)] text-[#ffbb00]"
+                            : "text-[#f2f2f2] hover:bg-[#242424]"
                         )}
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                       >
                         <span className={cn(
                           "p-2 rounded-lg",
-                          isSelected ? "bg-blue-500" : "bg-gray-800"
+                          isSelected ? "bg-[rgba(255,187,0,0.2)]" : "bg-[#242424]"
                         )}>
                           {command.icon}
                         </span>
@@ -362,14 +362,14 @@ export function CommandPalette({
                           {command.description && (
                             <div className={cn(
                               "text-sm truncate",
-                              isSelected ? "text-blue-200" : "text-gray-500"
+                              isSelected ? "text-[#ffbb00]/70" : "text-gray-500"
                             )}>
                               {command.description}
                             </div>
                           )}
                         </div>
                         {command.shortcut && (
-                          <div className={isSelected ? "text-blue-200" : ""}>
+                          <div className={isSelected ? "text-[#ffbb00]/70" : ""}>
                             {renderShortcut(command.shortcut)}
                           </div>
                         )}
@@ -383,15 +383,15 @@ export function CommandPalette({
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-3 border-t border-gray-800 flex items-center justify-between text-xs text-gray-500">
+        <div className="px-4 py-3 border-t border-[#333] flex items-center justify-between text-xs text-gray-500">
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 bg-gray-800 border border-gray-700 rounded">↑</kbd>
-              <kbd className="px-1.5 py-0.5 bg-gray-800 border border-gray-700 rounded">↓</kbd>
+              <kbd className="px-1.5 py-0.5 bg-[#242424] border border-[#333] rounded">↑</kbd>
+              <kbd className="px-1.5 py-0.5 bg-[#242424] border border-[#333] rounded">↓</kbd>
               <span className="ml-1">to navigate</span>
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 bg-gray-800 border border-gray-700 rounded">↵</kbd>
+              <kbd className="px-1.5 py-0.5 bg-[#242424] border border-[#333] rounded">↵</kbd>
               <span className="ml-1">to select</span>
             </span>
           </div>

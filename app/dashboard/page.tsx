@@ -115,10 +115,10 @@ function Drone3DVisualization({
         >
           {/* Drone Body (Center) */}
           <div 
-            className="absolute top-1/2 left-1/2 w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg shadow-lg"
-            style={{ 
+            className="absolute top-1/2 left-1/2 w-16 h-16 bg-gradient-to-br from-[#ffbb00] to-[#e6a800] rounded-lg shadow-lg"
+            style={{
               transform: 'translate(-50%, -50%) translateZ(20px)',
-              boxShadow: '0 0 20px rgba(59, 130, 246, 0.5)'
+              boxShadow: '0 0 20px rgba(255, 187, 0, 0.5)'
             }}
           >
             <div className="absolute top-1/2 left-1/2 w-2 h-2 bg-green-400 rounded-full animate-pulse transform -translate-x-1/2 -translate-y-1/2" />
@@ -175,7 +175,7 @@ function Drone3DVisualization({
         <div 
           className="absolute inset-0 opacity-20"
           style={{
-            backgroundImage: `linear-gradient(rgba(59, 130, 246, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(59, 130, 246, 0.3) 1px, transparent 1px)`,
+            backgroundImage: `linear-gradient(rgba(255, 187, 0, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 187, 0, 0.3) 1px, transparent 1px)`,
             backgroundSize: '40px 40px',
             transform: 'rotateX(60deg) translateZ(-100px)',
           }}
@@ -196,10 +196,10 @@ function Drone3DVisualization({
 // Connection Status Card
 function ConnectionStatusCard({ status, onArmToggle }: { status: DroneStatus; onArmToggle: () => void }) {
   return (
-    <Card className="bg-gray-900 border-gray-800">
+    <Card className="bg-[#1f1f1f] border-[#333]">
       <CardHeader className="pb-2">
         <CardTitle className="text-white flex items-center gap-2 text-lg">
-          <Cpu className="w-5 h-5 text-blue-500" />
+          <Cpu className="w-5 h-5 text-[#ffbb00]" />
           Connection Status
         </CardTitle>
       </CardHeader>
@@ -207,7 +207,7 @@ function ConnectionStatusCard({ status, onArmToggle }: { status: DroneStatus; on
         {/* ARM/DISARM Toggle */}
         <button
           onClick={onArmToggle}
-          className={`w-full py-6 rounded-xl font-bold text-2xl transition-all duration-300 shadow-lg ${
+          className={`w-full py-6 rounded-[4px] font-bold text-2xl transition-all duration-300 shadow-lg ${
             status.armed 
               ? 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-red-500/25' 
               : 'bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-green-500/25'
@@ -248,7 +248,7 @@ function ConnectionStatusCard({ status, onArmToggle }: { status: DroneStatus; on
           </div>
           <div className="flex justify-between">
             <span className="text-gray-400">Firmware</span>
-            <span className="text-blue-400 font-mono">{status.firmwareVersion}</span>
+            <span className="text-[#ffbb00] font-mono">{status.firmwareVersion}</span>
           </div>
         </div>
       </CardContent>
@@ -271,7 +271,7 @@ function BatteryCard({ battery }: { battery: BatteryStatus }) {
   };
 
   return (
-    <Card className="bg-gray-900 border-gray-800">
+    <Card className="bg-[#1f1f1f] border-[#333]">
       <CardHeader className="pb-2">
         <CardTitle className="text-white flex items-center gap-2 text-lg">
           <Zap className="w-5 h-5 text-yellow-500" />
@@ -287,19 +287,19 @@ function BatteryCard({ battery }: { battery: BatteryStatus }) {
         </div>
 
         <div className="relative">
-          <Progress value={battery.percentage} className="h-4 bg-gray-800" />
+          <Progress value={battery.percentage} className="h-4 bg-[#242424]" />
         </div>
 
         <div className="grid grid-cols-3 gap-4 text-center">
-          <div className="bg-gray-800 rounded-lg p-2">
+          <div className="bg-[#242424] rounded-lg p-2">
             <div className="text-xl font-bold text-white">{battery.voltage.toFixed(1)}V</div>
             <div className="text-xs text-gray-400">Voltage</div>
           </div>
-          <div className="bg-gray-800 rounded-lg p-2">
+          <div className="bg-[#242424] rounded-lg p-2">
             <div className="text-xl font-bold text-white">{battery.cellCount}S</div>
             <div className="text-xs text-gray-400">Cells</div>
           </div>
-          <div className="bg-gray-800 rounded-lg p-2">
+          <div className="bg-[#242424] rounded-lg p-2">
             <div className="text-xl font-bold text-white">{battery.current.toFixed(1)}A</div>
             <div className="text-xs text-gray-400">Current</div>
           </div>
@@ -322,7 +322,7 @@ function FlightModeCard({ status }: { status: DroneStatus }) {
   };
 
   return (
-    <Card className="bg-gray-900 border-gray-800">
+    <Card className="bg-[#1f1f1f] border-[#333]">
       <CardHeader className="pb-2">
         <CardTitle className="text-white flex items-center gap-2 text-lg">
           <Navigation className="w-5 h-5 text-purple-500" />
@@ -338,7 +338,7 @@ function FlightModeCard({ status }: { status: DroneStatus }) {
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-center justify-between p-2 rounded-lg bg-gray-800">
+          <div className="flex items-center justify-between p-2 rounded-lg bg-[#242424]">
             <span className="text-gray-300 flex items-center gap-2">
               <Crosshair className="w-4 h-4" />
               Arming Status
@@ -348,7 +348,7 @@ function FlightModeCard({ status }: { status: DroneStatus }) {
             </Badge>
           </div>
 
-          <div className="flex items-center justify-between p-2 rounded-lg bg-gray-800">
+          <div className="flex items-center justify-between p-2 rounded-lg bg-[#242424]">
             <span className="text-gray-300 flex items-center gap-2">
               <AlertTriangle className="w-4 h-4" />
               Failsafe
@@ -366,7 +366,7 @@ function FlightModeCard({ status }: { status: DroneStatus }) {
 // Live Sensor Graphs
 function LiveSensorGraphs({ data }: { data: TelemetryPoint[] }) {
   return (
-    <Card className="bg-gray-900 border-gray-800">
+    <Card className="bg-[#1f1f1f] border-[#333]">
       <CardHeader className="pb-2">
         <CardTitle className="text-white flex items-center gap-2 text-lg">
           <Activity className="w-5 h-5 text-cyan-500" />
@@ -378,10 +378,10 @@ function LiveSensorGraphs({ data }: { data: TelemetryPoint[] }) {
           <div className="text-xs text-gray-400 mb-1">Gyroscope (deg/s)</div>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#333333" />
               <XAxis dataKey="timestamp" hide />
               <YAxis stroke="#9ca3af" fontSize={10} domain={[-100, 100]} />
-              <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }} />
+              <Tooltip contentStyle={{ backgroundColor: '#1f1f1f', border: '1px solid #333333', borderRadius: '4px' }} />
               <Line type="monotone" dataKey="gyroX" stroke="#ef4444" strokeWidth={2} dot={false} />
               <Line type="monotone" dataKey="gyroY" stroke="#22c55e" strokeWidth={2} dot={false} />
               <Line type="monotone" dataKey="gyroZ" stroke="#3b82f6" strokeWidth={2} dot={false} />
@@ -393,10 +393,10 @@ function LiveSensorGraphs({ data }: { data: TelemetryPoint[] }) {
           <div className="text-xs text-gray-400 mb-1">Accelerometer (g)</div>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#333333" />
               <XAxis dataKey="timestamp" hide />
               <YAxis stroke="#9ca3af" fontSize={10} domain={[-5, 15]} />
-              <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }} />
+              <Tooltip contentStyle={{ backgroundColor: '#1f1f1f', border: '1px solid #333333', borderRadius: '4px' }} />
               <Line type="monotone" dataKey="accelX" stroke="#f97316" strokeWidth={2} dot={false} />
               <Line type="monotone" dataKey="accelY" stroke="#a855f7" strokeWidth={2} dot={false} />
               <Line type="monotone" dataKey="accelZ" stroke="#06b6d4" strokeWidth={2} dot={false} />
@@ -420,7 +420,7 @@ function GPSStatusPanel({ gps }: { gps: GPSStatus }) {
   };
 
   return (
-    <Card className="bg-gray-900 border-gray-800">
+    <Card className="bg-[#1f1f1f] border-[#333]">
       <CardHeader className="pb-2">
         <CardTitle className="text-white flex items-center gap-2 text-lg">
           <Satellite className="w-5 h-5 text-green-500" />
@@ -428,9 +428,9 @@ function GPSStatusPanel({ gps }: { gps: GPSStatus }) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
+        <div className="flex items-center justify-between p-3 bg-[#242424] rounded-lg">
           <div className="flex items-center gap-2">
-            <Satellite className="w-5 h-5 text-blue-400" />
+            <Satellite className="w-5 h-5 text-[#ffbb00]" />
             <span className="text-gray-300">Satellites</span>
           </div>
           <div className="text-2xl font-bold text-white">
@@ -438,7 +438,7 @@ function GPSStatusPanel({ gps }: { gps: GPSStatus }) {
           </div>
         </div>
 
-        <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
+        <div className="flex items-center justify-between p-3 bg-[#242424] rounded-lg">
           <div className="flex items-center gap-2">
             <MapPin className="w-5 h-5 text-purple-400" />
             <span className="text-gray-300">Fix Type</span>
@@ -446,7 +446,7 @@ function GPSStatusPanel({ gps }: { gps: GPSStatus }) {
           <span className={`font-bold ${getFixColor(gps.fixType)}`}>{gps.fixType}</span>
         </div>
 
-        <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
+        <div className="flex items-center justify-between p-3 bg-[#242424] rounded-lg">
           <div className="flex items-center gap-2">
             <Crosshair className="w-5 h-5 text-orange-400" />
             <span className="text-gray-300">HDOP</span>
@@ -454,7 +454,7 @@ function GPSStatusPanel({ gps }: { gps: GPSStatus }) {
           <span className="font-mono text-white">{gps.hdop.toFixed(2)}</span>
         </div>
 
-        <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
+        <div className="flex items-center justify-between p-3 bg-[#242424] rounded-lg">
           <div className="flex items-center gap-2">
             <Gauge className="w-5 h-5 text-cyan-400" />
             <span className="text-gray-300">Speed</span>
@@ -462,7 +462,7 @@ function GPSStatusPanel({ gps }: { gps: GPSStatus }) {
           <span className="font-mono text-white">{gps.speed.toFixed(1)} m/s</span>
         </div>
 
-        <div className="relative h-24 bg-gray-800 rounded-lg overflow-hidden">
+        <div className="relative h-24 bg-[#242424] rounded-lg overflow-hidden">
           <div 
             className="absolute inset-0 opacity-30"
             style={{
@@ -490,7 +490,7 @@ function QuickControls({ onCalibrateGyro, onCalibrateAccel, onSaveSettings, onRe
   onReboot: () => void;
 }) {
   return (
-    <Card className="bg-gray-900 border-gray-800">
+    <Card className="bg-[#1f1f1f] border-[#333]">
       <CardHeader className="pb-2">
         <CardTitle className="text-white flex items-center gap-2 text-lg">
           <Settings2 className="w-5 h-5 text-orange-500" />
@@ -499,22 +499,22 @@ function QuickControls({ onCalibrateGyro, onCalibrateAccel, onSaveSettings, onRe
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 gap-3">
-          <Button onClick={onCalibrateGyro} variant="outline" className="h-16 flex flex-col items-center justify-center gap-1 border-gray-700 hover:bg-gray-800">
-            <RotateCcw className="w-5 h-5 text-blue-400" />
+          <Button onClick={onCalibrateGyro} variant="outline" className="h-16 flex flex-col items-center justify-center gap-1 border-[#333] hover:bg-[#242424]">
+            <RotateCcw className="w-5 h-5 text-[#ffbb00]" />
             <span className="text-xs">Calibrate Gyro</span>
           </Button>
           
-          <Button onClick={onCalibrateAccel} variant="outline" className="h-16 flex flex-col items-center justify-center gap-1 border-gray-700 hover:bg-gray-800">
+          <Button onClick={onCalibrateAccel} variant="outline" className="h-16 flex flex-col items-center justify-center gap-1 border-[#333] hover:bg-[#242424]">
             <Activity className="w-5 h-5 text-green-400" />
             <span className="text-xs">Calibrate Accel</span>
           </Button>
           
-          <Button onClick={onSaveSettings} variant="outline" className="h-16 flex flex-col items-center justify-center gap-1 border-gray-700 hover:bg-gray-800">
+          <Button onClick={onSaveSettings} variant="outline" className="h-16 flex flex-col items-center justify-center gap-1 border-[#333] hover:bg-[#242424]">
             <Save className="w-5 h-5 text-yellow-400" />
             <span className="text-xs">Save Settings</span>
           </Button>
           
-          <Button onClick={onReboot} variant="outline" className="h-16 flex flex-col items-center justify-center gap-1 border-gray-700 hover:bg-gray-800">
+          <Button onClick={onReboot} variant="outline" className="h-16 flex flex-col items-center justify-center gap-1 border-[#333] hover:bg-[#242424]">
             <Power className="w-5 h-5 text-red-400" />
             <span className="text-xs">Reboot FC</span>
           </Button>
@@ -530,7 +530,7 @@ function MotorsOverview({ motors }: { motors: MotorStatus[] }) {
   const maxRpm = 10000;
 
   return (
-    <Card className="bg-gray-900 border-gray-800">
+    <Card className="bg-[#1f1f1f] border-[#333]">
       <CardHeader className="pb-2">
         <CardTitle className="text-white flex items-center gap-2 text-lg">
           <Zap className="w-5 h-5 text-red-500" />
@@ -540,13 +540,13 @@ function MotorsOverview({ motors }: { motors: MotorStatus[] }) {
       <CardContent>
         <div className="grid grid-cols-4 gap-3">
           {motors.map((motor) => (
-            <div key={motor.id} className="bg-gray-800 rounded-lg p-3">
+            <div key={motor.id} className="bg-[#242424] rounded-lg p-3">
               <div className="text-center mb-2">
                 <span className="text-lg font-bold text-white">{motor.id}</span>
               </div>
-              <div className="relative h-20 bg-gray-900 rounded-lg overflow-hidden">
-                <div 
-                  className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-blue-600 to-blue-400 transition-all duration-100"
+              <div className="relative h-20 bg-[#141414] rounded-lg overflow-hidden">
+                <div
+                  className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#ffbb00] to-[#e6a800] transition-all duration-100"
                   style={{ height: `${(motor.rpm / maxRpm) * 100}%` }}
                 />
               </div>
@@ -568,7 +568,7 @@ function RecentAlerts({ alerts }: { alerts: Alert[] }) {
     switch (type) {
       case 'error': return <AlertCircle className="w-4 h-4 text-red-400" />;
       case 'warning': return <AlertTriangle className="w-4 h-4 text-yellow-400" />;
-      case 'info': return <CheckCircle2 className="w-4 h-4 text-blue-400" />;
+      case 'info': return <CheckCircle2 className="w-4 h-4 text-[#ffbb00]" />;
     }
   };
 
@@ -576,12 +576,12 @@ function RecentAlerts({ alerts }: { alerts: Alert[] }) {
     switch (type) {
       case 'error': return 'border-l-red-500 bg-red-950/20';
       case 'warning': return 'border-l-yellow-500 bg-yellow-950/20';
-      case 'info': return 'border-l-blue-500 bg-blue-950/20';
+      case 'info': return 'border-l-[#ffbb00] bg-[rgba(255,187,0,0.1)]';
     }
   };
 
   return (
-    <Card className="bg-gray-900 border-gray-800">
+    <Card className="bg-[#1f1f1f] border-[#333]">
       <CardHeader className="pb-2">
         <CardTitle className="text-white flex items-center gap-2 text-lg">
           <AlertTriangle className="w-5 h-5 text-yellow-500" />
@@ -794,7 +794,7 @@ export default function DashboardPage() {
   // Handlers
   const handleArmToggle = () => {
     setDroneStatus(prev => ({ ...prev, armed: !prev.armed }));
-    addAlert(prev => !prev ? 'info' : 'warning', prev ? 'Drone DISARMED' : 'Drone ARMED');
+    addAlert(droneStatus.armed ? 'info' : 'warning', droneStatus.armed ? 'Drone DISARMED' : 'Drone ARMED');
   };
 
   const handleCalibrateGyro = () => {
@@ -841,10 +841,10 @@ export default function DashboardPage() {
       {/* Middle Row - Live Telemetry */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* 3D Drone Visualization */}
-        <Card className="bg-gray-900 border-gray-800">
+        <Card className="bg-[#1f1f1f] border-[#333]">
           <CardHeader className="pb-2">
             <CardTitle className="text-white flex items-center gap-2 text-lg">
-              <Activity className="w-5 h-5 text-blue-500" />
+              <Activity className="w-5 h-5 text-[#ffbb00]" />
               3D Attitude
             </CardTitle>
           </CardHeader>

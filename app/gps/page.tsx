@@ -52,10 +52,10 @@ export default function GPSPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl lg:text-2xl font-bold text-white flex items-center gap-2">
-            <Activity className="w-5 h-5 lg:w-6 lg:h-6 text-blue-500" />
+            <Activity className="w-5 h-5 lg:w-6 lg:h-6 text-[#ffbb00]" />
             GPS Tracking
           </h1>
-          <p className="text-gray-400 mt-1 text-sm lg:text-base">
+          <p className="text-[#8c8c8c] mt-1 text-sm lg:text-base">
             Real-time drone position and telemetry
           </p>
         </div>
@@ -117,7 +117,7 @@ export default function GPSPage() {
 
       {/* Debug Info - Collapsible on mobile */}
       {gpsData && (
-        <details className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+        <details className="bg-[#1f1f1f] rounded-[4px] border border-[#333] overflow-hidden">
           <summary className="px-4 py-3 text-sm font-semibold text-gray-400 cursor-pointer hover:text-white transition-colors">
             Raw GPS Data
           </summary>
@@ -133,10 +133,10 @@ export default function GPSPage() {
 // Simple skeleton card for serial connection
 function SkeletonCard() {
   return (
-    <div className="bg-gray-900 rounded-xl p-6 border border-gray-800 animate-pulse">
-      <div className="h-6 bg-gray-800 rounded w-3/4 mb-4"></div>
-      <div className="h-4 bg-gray-800 rounded w-full mb-2"></div>
-      <div className="h-4 bg-gray-800 rounded w-2/3"></div>
+    <div className="bg-[#1f1f1f] rounded-[4px] p-6 border border-[#333] animate-pulse">
+      <div className="h-6 bg-[#242424] rounded w-3/4 mb-4"></div>
+      <div className="h-4 bg-[#242424] rounded w-full mb-2"></div>
+      <div className="h-4 bg-[#242424] rounded w-2/3"></div>
     </div>
   );
 }

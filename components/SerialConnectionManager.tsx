@@ -135,16 +135,16 @@ export function SerialConnectionManager() {
   }
 
   return (
-    <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
+    <div className="bg-[#1f1f1f] rounded-[4px] p-6 border border-[#333]">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-          <Usb className="w-5 h-5 text-purple-500" />
+          <Usb className="w-5 h-5 text-[#ffbb00]" />
           Serial Connection
         </h3>
         <button
           onClick={fetchPorts}
           disabled={loading}
-          className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 transition-colors min-h-[44px] min-w-[44px] touch-manipulation"
+          className="p-2 rounded-lg bg-[#242424] hover:bg-[#333] text-gray-400 transition-colors min-h-[44px] min-w-[44px] touch-manipulation"
           title="Refresh ports"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
@@ -156,7 +156,7 @@ export function SerialConnectionManager() {
         className={`flex items-center gap-3 p-3 rounded-lg border mb-4 ${
           status.connected
             ? "bg-green-950/30 border-green-800"
-            : "bg-gray-800/50 border-gray-700"
+            : "bg-[#242424] border-[#333]"
         }`}
       >
         {status.connected ? (
@@ -191,7 +191,7 @@ export function SerialConnectionManager() {
             <select
               value={selectedPort}
               onChange={(e) => setSelectedPort(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-blue-500 min-h-[44px]"
+              className="w-full bg-[#242424] border border-[#333] rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-[#ffbb00] min-h-[44px]"
             >
               <option value="">Select port...</option>
               {ports.map((port) => (
@@ -210,7 +210,7 @@ export function SerialConnectionManager() {
             <select
               value={baudrate}
               onChange={(e) => setBaudrate(Number(e.target.value))}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-blue-500 min-h-[44px]"
+              className="w-full bg-[#242424] border border-[#333] rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-[#ffbb00] min-h-[44px]"
             >
               {baudrates.map((rate) => (
                 <option key={rate} value={rate}>
@@ -223,7 +223,7 @@ export function SerialConnectionManager() {
           <button
             onClick={handleConnect}
             disabled={!selectedPort || loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:text-gray-500 text-white py-3 rounded-lg font-medium transition-colors min-h-[48px] touch-manipulation"
+            className="w-full bg-[#ffbb00] hover:bg-[#e6a800] disabled:bg-[#333] disabled:text-[#8c8c8c] text-[#141414] py-3 rounded-lg font-medium transition-colors min-h-[48px] touch-manipulation"
           >
             {loading ? "Connecting..." : "Connect"}
           </button>

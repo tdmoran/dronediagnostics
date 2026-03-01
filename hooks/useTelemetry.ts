@@ -5,6 +5,7 @@ import { TelemetryData, GPSData } from '@/types/gps';
 
 interface UseTelemetryOptions {
   url?: string;
+  autoConnect?: boolean;
   onMessage?: (data: TelemetryData) => void;
   onConnect?: () => void;
   onDisconnect?: () => void;
@@ -24,6 +25,7 @@ interface UseTelemetryReturn {
 
 export function useTelemetry({
   url = 'ws://localhost:8000/ws/telemetry',
+  autoConnect = false,
   onMessage,
   onConnect,
   onDisconnect,
@@ -90,7 +92,7 @@ export function useTelemetry({
       };
 
       ws.current.onerror = (event) => {
-        console.error('WebSocket error:', event);
+        console.warn('WebSocket connection failed — backend may not be running');
         setError('Connection error');
         onError?.(event);
       };
@@ -117,12 +119,14 @@ export function useTelemetry({
   }, []);
 
   useEffect(() => {
-    connect();
+    if (autoConnect) {
+      connect();
+    }
 
     return () => {
       disconnect();
     };
-  }, [connect, disconnect]);
+  }, [autoConnect, connect, disconnect]);
 
   // Heartbeat to keep connection alive
   useEffect(() => {
