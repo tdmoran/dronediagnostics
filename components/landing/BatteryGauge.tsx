@@ -64,16 +64,37 @@ function pctToVoltage(pct: number): string {
 // Tick mark positions
 const TICKS = [0, 25, 50, 75, 100];
 
-export function BatteryGauge() {
+interface BatteryGaugeProps {
+  /** Live battery data. When provided, simulation is disabled. */
+  battery?: { voltage: number; amperage: number; rssi: number };
+}
+
+/** Convert real voltage to percentage assuming 6S LiPo (18.0–25.2V). */
+function voltageToPct(v: number): number {
+  return Math.max(0, Math.min(100, ((v - 18.0) / (25.2 - 18.0)) * 100));
+}
+
+export function BatteryGauge({ battery }: BatteryGaugeProps) {
   const [displayPct, setDisplayPct] = useState(85);
   const targetRef = useRef(85);
   const currentRef = useRef(85);
   const animFrameRef = useRef<number>(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [currentDraw, setCurrentDraw] = useState(12.5);
+  const [liveVoltage, setLiveVoltage] = useState<string | null>(null);
 
-  // Oscillate target between 70-95
+  // When live battery data arrives, drive the gauge from it
   useEffect(() => {
+    if (battery) {
+      targetRef.current = voltageToPct(battery.voltage);
+      setCurrentDraw(battery.amperage);
+      setLiveVoltage(battery.voltage.toFixed(1));
+    }
+  }, [battery]);
+
+  // Oscillate target between 70-95 (simulation only)
+  useEffect(() => {
+    if (battery) return;
     let rising = false;
     intervalRef.current = setInterval(() => {
       if (rising) {
@@ -88,9 +109,9 @@ export function BatteryGauge() {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, []);
+  }, [battery]);
 
-  // Smooth animation loop
+  // Smooth animation loop (runs always for easing)
   useEffect(() => {
     function animate() {
       const diff = targetRef.current - currentRef.current;
@@ -105,7 +126,7 @@ export function BatteryGauge() {
   const pct = Math.max(0, Math.min(100, displayPct));
   const fillAngle = START_ANGLE_DEG + (pct / 100) * SWEEP_DEG;
   const arcColor = percentToColor(pct);
-  const voltage = pctToVoltage(pct);
+  const voltage = liveVoltage ?? pctToVoltage(pct);
 
   // Background arc (full sweep)
   const bgArcPath = describeArc(

@@ -10,13 +10,7 @@ import {
   Radio,
   ChevronRight
 } from "lucide-react";
-import { AttitudeIndicator } from "@/components/landing/AttitudeIndicator";
-import { BatteryGauge } from "@/components/landing/BatteryGauge";
-import { MotorLayout } from "@/components/landing/MotorLayout";
-import { GPSRadar } from "@/components/landing/GPSRadar";
-import { SignalStrength } from "@/components/landing/SignalStrength";
-import { TelemetryWaveform } from "@/components/landing/TelemetryWaveform";
-import { RCSticks } from "@/components/landing/RCSticks";
+import { LiveTelemetrySection } from "@/components/landing/LiveTelemetrySection";
 
 const features = [
   {
@@ -81,75 +75,7 @@ export default function Home() {
       </div>
 
       {/* Live Telemetry Preview */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="w-2 h-2 bg-[#96e212] rounded-full animate-pulse" />
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-[#8c8c8c]">
-            Live Telemetry Preview
-          </h2>
-          <div className="flex-1 h-px bg-[#333]" />
-          <span className="text-xs text-[#666]">SIMULATED</span>
-        </div>
-
-        {/* Gyroscope Waveform - Full Width */}
-        <div className="bg-[#1f1f1f] rounded-[4px] border border-[#333] p-4">
-          <TelemetryWaveform />
-        </div>
-
-        {/* Main Instruments Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-          {/* Attitude Indicator */}
-          <div className="bg-[#1f1f1f] rounded-[4px] border border-[#333] p-4 flex flex-col items-center">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-[#8c8c8c] mb-3 self-start">
-              Attitude
-            </h3>
-            <AttitudeIndicator />
-          </div>
-
-          {/* Battery Gauge */}
-          <div className="bg-[#1f1f1f] rounded-[4px] border border-[#333] p-4 flex flex-col items-center">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-[#8c8c8c] mb-3 self-start">
-              Power
-            </h3>
-            <BatteryGauge />
-          </div>
-
-          {/* Motor Layout */}
-          <div className="bg-[#1f1f1f] rounded-[4px] border border-[#333] p-4 flex flex-col items-center">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-[#8c8c8c] mb-3 self-start">
-              Motors
-            </h3>
-            <MotorLayout />
-          </div>
-
-          {/* GPS Radar */}
-          <div className="bg-[#1f1f1f] rounded-[4px] border border-[#333] p-4 flex flex-col items-center">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-[#8c8c8c] mb-3 self-start">
-              Satellites
-            </h3>
-            <GPSRadar />
-          </div>
-        </div>
-
-        {/* Secondary Instruments Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* RC Sticks */}
-          <div className="bg-[#1f1f1f] rounded-[4px] border border-[#333] p-4 flex flex-col items-center">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-[#8c8c8c] mb-3 self-start">
-              RC Input
-            </h3>
-            <RCSticks />
-          </div>
-
-          {/* Signal Strength */}
-          <div className="bg-[#1f1f1f] rounded-[4px] border border-[#333] p-4 flex flex-col items-center">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-[#8c8c8c] mb-3 self-start">
-              Radio Link
-            </h3>
-            <SignalStrength />
-          </div>
-        </div>
-      </div>
+      <LiveTelemetrySection />
 
       {/* Quick Navigation */}
       <div className="space-y-3">

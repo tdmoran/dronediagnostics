@@ -45,3 +45,10 @@ MSP_RSSI_CONFIG_2 = 50
 MSP_RTC = 126
 MSP_SET_RAW_GPS = 201
 MSP_SET_GPS_DATA = 213
+
+# Firmware/Board info commands (imported by main.py)
+MSP_API_VERSION = 1
+MSP_FC_VARIANT = 2
+MSP_FC_VERSION = 3
+MSP_BOARD_INFO = 4
+MSP_UID = 160

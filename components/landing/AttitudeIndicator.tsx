@@ -39,34 +39,47 @@ const MAJOR_ROLL_TICKS = new Set([0, 30, -30, 60, -60]);
 // Component
 // ---------------------------------------------------------------------------
 
-export function AttitudeIndicator() {
+interface AttitudeIndicatorProps {
+  /** Live attitude data from telemetry. When provided, simulation is disabled. */
+  attitude?: { roll: number; pitch: number; yaw: number };
+}
+
+export function AttitudeIndicator({ attitude: liveAttitude }: AttitudeIndicatorProps) {
   const [pitch, setPitch] = useState(0);
   const [roll, setRoll] = useState(0);
   const [yaw, setYaw] = useState(0);
 
-  // Simulated flight data ---------------------------------------------------
+  // Use live data when available
   useEffect(() => {
+    if (liveAttitude) {
+      setPitch(liveAttitude.pitch);
+      setRoll(liveAttitude.roll);
+      setYaw(((liveAttitude.yaw % 360) + 360) % 360);
+    }
+  }, [liveAttitude]);
+
+  // Simulated flight data (only when no live data) -------------------------
+  useEffect(() => {
+    if (liveAttitude) return; // skip simulation when live data is present
+
     let frame: number;
-    let t = Math.random() * 1000; // stagger start so every mount looks unique
+    let t = Math.random() * 1000;
 
     const tick = () => {
-      t += 0.016; // ~60 fps increment
+      t += 0.016;
 
-      // Composite oscillation for pitch (-12 … +12 deg typical)
       const p =
         5.0 * Math.sin(t * 0.47) +
         3.2 * Math.sin(t * 1.13 + 1.0) +
         1.8 * Math.cos(t * 2.07 + 0.5) +
         0.9 * Math.sin(t * 3.51 + 2.3);
 
-      // Composite oscillation for roll (-18 … +18 deg typical)
       const r =
         7.0 * Math.sin(t * 0.31 + 0.8) +
         4.5 * Math.cos(t * 0.87 + 2.1) +
         2.6 * Math.sin(t * 1.73 + 1.4) +
         1.2 * Math.cos(t * 2.91 + 3.0);
 
-      // Yaw: slow drift 0-360
       const y = ((t * 12.0) % 360 + 360) % 360;
 
       setPitch(p);
@@ -78,7 +91,7 @@ export function AttitudeIndicator() {
 
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, []);
+  }, [liveAttitude]);
 
   // Formatting helper -------------------------------------------------------
   const fmt = useCallback((v: number, decimals = 1) => {

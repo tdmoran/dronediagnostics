@@ -23,10 +23,50 @@ export interface GPSStatus {
   color: 'red' | 'yellow' | 'green' | 'gray';
 }
 
+export interface GyroData {
+  x: number;
+  y: number;
+  z: number;
+}
+
+export interface AccelData {
+  x: number;
+  y: number;
+  z: number;
+}
+
+export interface AttitudeData {
+  roll: number;
+  pitch: number;
+  yaw: number;
+}
+
+export interface StatusData {
+  cycle_time: number;
+  i2c_errors: number;
+  sensors: number;
+  flight_mode: number;
+  current_profile: number;
+}
+
+export interface BatteryData {
+  voltage: number;
+  power_meter: number;
+  rssi: number;
+  amperage: number;
+}
+
 export interface TelemetryData {
   type: 'telemetry';
   timestamp: number;
   gps: GPSData | null;
+  gyro?: GyroData;
+  accel?: AccelData;
+  attitude?: AttitudeData;
+  status?: StatusData;
+  motors?: number[];
+  rc?: number[];
+  battery?: BatteryData;
 }
 
 export type FixType = 0 | 1 | 2;

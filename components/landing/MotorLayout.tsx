@@ -55,14 +55,32 @@ function rpmToSpinDuration(rpm: number): number {
   return 1.2 - t * 0.9;
 }
 
-export function MotorLayout() {
+interface MotorLayoutProps {
+  /** Live motor PWM values (1000-2000). When provided, simulation is disabled. */
+  motors?: number[];
+}
+
+/** Map PWM (1000-2000) to approximate RPM range (4000-8000). */
+function pwmToRpm(pwm: number): number {
+  return 4000 + ((Math.max(1000, Math.min(2000, pwm)) - 1000) / 1000) * 4000;
+}
+
+export function MotorLayout({ motors: liveMotors }: MotorLayoutProps) {
   const [rpms, setRpms] = useState([6200, 6100, 6300, 6150]);
   const targetRpmsRef = useRef([6200, 6100, 6300, 6150]);
   const currentRpmsRef = useRef([6200, 6100, 6300, 6150]);
   const animFrameRef = useRef<number>(0);
 
-  // Generate new target RPMs periodically
+  // Drive targets from live motor data
   useEffect(() => {
+    if (liveMotors && liveMotors.length >= 4) {
+      targetRpmsRef.current = liveMotors.slice(0, 4).map(pwmToRpm);
+    }
+  }, [liveMotors]);
+
+  // Generate new target RPMs periodically (simulation only)
+  useEffect(() => {
+    if (liveMotors) return;
     const interval = setInterval(() => {
       targetRpmsRef.current = [
         5000 + Math.random() * 3000,
@@ -72,7 +90,7 @@ export function MotorLayout() {
       ];
     }, 2500);
     return () => clearInterval(interval);
-  }, []);
+  }, [liveMotors]);
 
   // Smooth animation loop
   useEffect(() => {

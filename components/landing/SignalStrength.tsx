@@ -24,13 +24,31 @@ function getLinkQuality(rssi: number): number {
   return Math.round(((clamped + 100) / 70) * 100);
 }
 
-export function SignalStrength() {
+interface SignalStrengthProps {
+  /** Live RSSI value (0-1023 from MSP_ANALOG). When provided, simulation is disabled. */
+  rssiRaw?: number;
+}
+
+/** Map raw MSP RSSI (0-1023) to approximate dBm (-100..-30). */
+function rawRssiToDbm(raw: number): number {
+  return -100 + (Math.max(0, Math.min(1023, raw)) / 1023) * 70;
+}
+
+export function SignalStrength({ rssiRaw }: SignalStrengthProps) {
   const [rssi, setRssi] = useState(-64);
   const [pulsePhase, setPulsePhase] = useState(0);
   const [packetLoss, setPacketLoss] = useState(0.2);
 
-  // Fluctuate RSSI
+  // When live RSSI arrives, use it
   useEffect(() => {
+    if (rssiRaw !== undefined) {
+      setRssi(rawRssiToDbm(rssiRaw));
+    }
+  }, [rssiRaw]);
+
+  // Fluctuate RSSI (simulation only)
+  useEffect(() => {
+    if (rssiRaw !== undefined) return;
     const interval = setInterval(() => {
       setRssi((prev) => {
         const delta = (Math.random() - 0.5) * 4;
@@ -43,7 +61,7 @@ export function SignalStrength() {
       });
     }, 800);
     return () => clearInterval(interval);
-  }, []);
+  }, [rssiRaw]);
 
   // Pulse animation
   useEffect(() => {

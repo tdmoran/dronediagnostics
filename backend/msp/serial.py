@@ -7,7 +7,10 @@ from typing import Optional, Callable
 import logging
 
 from msp.protocol import MSPProtocol
-from msp.codes import MSP_RAW_GPS, MSP_COMP_GPS, MSP_GPS_DATA
+from msp.codes import (
+    MSP_RAW_GPS, MSP_COMP_GPS, MSP_GPS_DATA,
+    MSP_STATUS, MSP_RAW_IMU, MSP_MOTOR, MSP_RC, MSP_ATTITUDE, MSP_ANALOG,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -79,10 +82,10 @@ class MSPSerialConnection:
         """Read and parse MSP response."""
         if not self.serial or not self.serial.is_open:
             return None
-        
-        # Read header
+
+        # Read header — FC responds with $M> (not $M< which is the request direction)
         header = self.serial.read(3)
-        if header != self.protocol.HEADER:
+        if header != self.protocol.RESPONSE_HEADER:
             return None
         
         # Read size and command
@@ -111,29 +114,65 @@ class MSPSerialConnection:
         
         return command, payload
     
-    def process_gps_response(self, command: int, data: bytes):
-        """Process GPS-related MSP responses."""
+    def process_response(self, command: int, data: bytes):
+        """Process any MSP response and dispatch to protocol parser."""
         try:
             if command == MSP_RAW_GPS:
-                gps = self.protocol.parse_raw_gps(data)
-                logger.debug(f"GPS Position: {gps.format_decimal()}")
+                result = self.protocol.parse_raw_gps(data)
+                logger.debug(f"GPS Position: {result.format_decimal()}")
                 for callback in self._callbacks:
-                    callback('gps', gps)
-                    
+                    callback('gps', result)
+
             elif command == MSP_COMP_GPS:
-                computed = self.protocol.parse_comp_gps(data)
-                logger.debug(f"GPS Computed: dist={computed.distance_to_home}m, dir={computed.direction_to_home}°")
+                result = self.protocol.parse_comp_gps(data)
+                logger.debug(f"GPS Computed: dist={result.distance_to_home}m")
                 for callback in self._callbacks:
-                    callback('gps_computed', computed)
-                    
+                    callback('gps_computed', result)
+
             elif command == MSP_GPS_DATA:
-                gps = self.protocol.parse_gps_data(data)
-                logger.debug(f"GPS Extended: HDOP={gps.hdop}")
+                result = self.protocol.parse_gps_data(data)
+                logger.debug(f"GPS Extended: HDOP={result.hdop}")
                 for callback in self._callbacks:
-                    callback('gps', gps)
-                    
+                    callback('gps', result)
+
+            elif command == MSP_RAW_IMU:
+                result = self.protocol.parse_raw_imu(data)
+                logger.debug(f"IMU: gyro=({result.gyro_x:.1f},{result.gyro_y:.1f},{result.gyro_z:.1f})")
+                for callback in self._callbacks:
+                    callback('imu', result)
+
+            elif command == MSP_STATUS:
+                result = self.protocol.parse_status(data)
+                logger.debug(f"Status: cycle={result.cycle_time}us mode={result.flight_mode}")
+                for callback in self._callbacks:
+                    callback('status', result)
+
+            elif command == MSP_MOTOR:
+                result = self.protocol.parse_motor(data)
+                logger.debug(f"Motors: {result.motors[:4]}")
+                for callback in self._callbacks:
+                    callback('motors', result)
+
+            elif command == MSP_RC:
+                result = self.protocol.parse_rc(data)
+                logger.debug(f"RC: ch1-4={result.channels[:4]}")
+                for callback in self._callbacks:
+                    callback('rc', result)
+
+            elif command == MSP_ATTITUDE:
+                result = self.protocol.parse_attitude(data)
+                logger.debug(f"Attitude: R={result.roll:.1f} P={result.pitch:.1f} Y={result.yaw}")
+                for callback in self._callbacks:
+                    callback('attitude', result)
+
+            elif command == MSP_ANALOG:
+                result = self.protocol.parse_analog(data)
+                logger.debug(f"Analog: {result.vbat}V {result.amperage}A rssi={result.rssi}")
+                for callback in self._callbacks:
+                    callback('battery', result)
+
         except Exception as e:
-            logger.error(f"Error processing GPS response: {e}")
+            logger.error(f"Error processing MSP response (cmd={command}): {e}")
     
     def add_callback(self, callback: Callable):
         """Add callback for GPS data updates."""
@@ -144,22 +183,34 @@ class MSPSerialConnection:
         if callback in self._callbacks:
             self._callbacks.remove(callback)
     
+    # All MSP commands to poll each cycle
+    POLL_COMMANDS = [
+        MSP_RAW_IMU,    # 102 – gyro + accel
+        MSP_STATUS,     # 101 – cycle time, sensors, mode
+        MSP_MOTOR,      # 104 – motor outputs
+        MSP_RC,         # 105 – RC channels
+        MSP_ATTITUDE,   # 108 – roll/pitch/yaw
+        MSP_ANALOG,     # 110 – battery voltage, current, RSSI
+        MSP_RAW_GPS,    # 106 – GPS position
+    ]
+
     async def start_polling(self, interval: float = 0.1):
-        """Start polling GPS data in background."""
+        """Start polling all telemetry data in background."""
         self.running = True
-        
+
         while self.running:
             try:
-                # Request GPS data
-                if self.request_gps_data():
-                    # Read response
-                    response = self.read_response(timeout=0.5)
-                    if response:
-                        command, data = response
-                        self.process_gps_response(command, data)
-                
+                for cmd in self.POLL_COMMANDS:
+                    if not self.running:
+                        break
+                    if self.send_msp_command(cmd):
+                        response = self.read_response(timeout=0.5)
+                        if response:
+                            command, data = response
+                            self.process_response(command, data)
+
                 await asyncio.sleep(interval)
-                
+
             except asyncio.CancelledError:
                 break
             except Exception as e:

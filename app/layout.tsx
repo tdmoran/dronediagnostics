@@ -9,6 +9,7 @@ import { PageProgress } from "@/components/PageProgress";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { DesktopSidebar } from "@/components/DesktopSidebar";
 import { AppProviders } from "@/components/AppProviders";
+import { TelemetryProvider } from "@/components/TelemetryProvider";
 
 const openSans = Open_Sans({ subsets: ["latin"], weight: ["400", "600", "700"] });
 
@@ -28,27 +29,29 @@ export default function RootLayout({
         <ErrorBoundary>
           <ToastProvider>
             <AppProviders>
-              {/* Page loading progress bar */}
-              <PageProgress color="bg-[#ffbb00]" height={3} />
-              
-              {/* Mobile navigation */}
-              <MobileSidebar />
-              <MobileSwipeHint />
-              
-              {/* Main layout */}
-              <div className="flex min-h-screen">
-                {/* Desktop sidebar - hidden on mobile */}
-                <DesktopSidebar />
+              <TelemetryProvider>
+                {/* Page loading progress bar */}
+                <PageProgress color="bg-[#ffbb00]" height={3} />
 
-                {/* Main content */}
-                <main className="flex-1 min-w-0 p-4 lg:p-6">
-                  {children}
-                </main>
-              </div>
-              
-              {/* Toast notifications */}
-              <ToastContainer toasts={[]} position="bottom-right" />
-              
+                {/* Mobile navigation */}
+                <MobileSidebar />
+                <MobileSwipeHint />
+
+                {/* Main layout */}
+                <div className="flex min-h-screen">
+                  {/* Desktop sidebar - hidden on mobile */}
+                  <DesktopSidebar />
+
+                  {/* Main content */}
+                  <main className="flex-1 min-w-0 p-4 lg:p-6">
+                    {children}
+                  </main>
+                </div>
+
+                {/* Toast notifications */}
+                <ToastContainer toasts={[]} position="bottom-right" />
+              </TelemetryProvider>
+
               {/* Command palette is rendered inside AppProviders */}
             </AppProviders>
           </ToastProvider>

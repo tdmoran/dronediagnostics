@@ -24,13 +24,27 @@ function toMicros(v: number): number {
   return Math.round(1500 + v * 500);
 }
 
-/** Smoothly animated simulated stick data */
-function useSimulatedSticks() {
+/** Convert RC channel microseconds (1000-2000) to -1..+1 range. */
+function microsToNorm(us: number): number {
+  return (Math.max(1000, Math.min(2000, us)) - 1500) / 500;
+}
+
+/** Smoothly animated simulated stick data (used when no live RC) */
+function useSimulatedSticks(liveRC?: number[]) {
   const [left, setLeft] = useState<StickPosition>({ x: 0, y: 0.2 });
   const [right, setRight] = useState<StickPosition>({ x: 0, y: 0 });
   const tRef = useRef(0);
   const rafRef = useRef<number>(0);
   const lastFrameRef = useRef(0);
+
+  // When live RC data arrives, use it directly
+  useEffect(() => {
+    if (liveRC && liveRC.length >= 4) {
+      // Standard Betaflight channel order: Roll(0), Pitch(1), Yaw(2), Throttle(3)
+      setRight({ x: microsToNorm(liveRC[0]), y: microsToNorm(liveRC[1]) });
+      setLeft({ x: microsToNorm(liveRC[2]), y: microsToNorm(liveRC[3]) });
+    }
+  }, [liveRC]);
 
   const tick = useCallback((timestamp: number) => {
     if (lastFrameRef.current === 0) lastFrameRef.current = timestamp;
@@ -41,7 +55,6 @@ function useSimulatedSticks() {
       tRef.current += 1 / 30;
       const t = tRef.current;
 
-      // Left stick: throttle at ~60% with gentle drift, small yaw inputs
       setLeft({
         x:
           0.08 * Math.sin(2 * Math.PI * 0.15 * t) +
@@ -52,7 +65,6 @@ function useSimulatedSticks() {
           0.03 * Math.sin(2 * Math.PI * 0.35 * t),
       });
 
-      // Right stick: gentle pitch/roll inputs
       setRight({
         x:
           0.15 * Math.sin(2 * Math.PI * 0.25 * t) +
@@ -66,10 +78,12 @@ function useSimulatedSticks() {
     rafRef.current = requestAnimationFrame(tick);
   }, []);
 
+  // Only run simulation when there's no live data
   useEffect(() => {
+    if (liveRC) return;
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [tick]);
+  }, [tick, liveRC]);
 
   return { left, right };
 }
@@ -258,8 +272,13 @@ function StickArea({
   );
 }
 
-export function RCSticks() {
-  const { left, right } = useSimulatedSticks();
+interface RCSticksProps {
+  /** Live RC channel values in microseconds. When provided, simulation is disabled. */
+  rc?: number[];
+}
+
+export function RCSticks({ rc }: RCSticksProps) {
+  const { left, right } = useSimulatedSticks(rc);
 
   const thrVal = toMicros(left.y);
   const yawVal = toMicros(left.x);

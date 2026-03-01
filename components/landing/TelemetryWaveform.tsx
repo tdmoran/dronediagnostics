@@ -46,11 +46,16 @@ function buildPolyline(data: number[]): string {
   return data.map((v, i) => `${indexToX(i).toFixed(1)},${valueToY(v).toFixed(1)}`).join(" ");
 }
 
-export function TelemetryWaveform() {
+interface TelemetryWaveformProps {
+  /** Live gyro data (deg/s). When provided, simulation is disabled. */
+  gyro?: { x: number; y: number; z: number };
+}
+
+export function TelemetryWaveform({ gyro }: TelemetryWaveformProps) {
   const [buffers, setBuffers] = useState<[number[], number[], number[]]>(() => {
     const initial: [number[], number[], number[]] = [[], [], []];
     for (let i = 0; i < BUFFER_SIZE; i++) {
-      const t = (i - BUFFER_SIZE) / 30; // pre-fill with historical data
+      const t = (i - BUFFER_SIZE) / 30;
       initial[0].push(generateSample(t, 0));
       initial[1].push(generateSample(t, 1));
       initial[2].push(generateSample(t, 2));
@@ -61,22 +66,28 @@ export function TelemetryWaveform() {
   const tRef = useRef(0);
   const rafRef = useRef<number>(0);
   const lastFrameRef = useRef(0);
+  const liveGyroRef = useRef(gyro);
+
+  // Keep ref in sync with latest prop
+  useEffect(() => {
+    liveGyroRef.current = gyro;
+  }, [gyro]);
 
   const tick = useCallback((timestamp: number) => {
     if (lastFrameRef.current === 0) lastFrameRef.current = timestamp;
     const delta = timestamp - lastFrameRef.current;
 
-    // Target ~30fps => ~33ms per frame
     if (delta >= 33) {
       lastFrameRef.current = timestamp;
       tRef.current += 1 / 30;
       const t = tRef.current;
+      const live = liveGyroRef.current;
 
       setBuffers((prev) => {
         const next: [number[], number[], number[]] = [
-          [...prev[0].slice(1), generateSample(t, 0)],
-          [...prev[1].slice(1), generateSample(t, 1)],
-          [...prev[2].slice(1), generateSample(t, 2)],
+          [...prev[0].slice(1), live ? Math.max(-100, Math.min(100, live.x)) : generateSample(t, 0)],
+          [...prev[1].slice(1), live ? Math.max(-100, Math.min(100, live.y)) : generateSample(t, 1)],
+          [...prev[2].slice(1), live ? Math.max(-100, Math.min(100, live.z)) : generateSample(t, 2)],
         ];
         return next;
       });

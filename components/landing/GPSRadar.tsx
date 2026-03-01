@@ -35,7 +35,16 @@ function getSatColor(snr: number): string {
   return '#e2123f';
 }
 
-export function GPSRadar() {
+interface GPSRadarProps {
+  /** Live GPS data. When provided, the info bar shows real values. */
+  gps?: {
+    num_satellites: number;
+    fix_type: number;
+    hdop: number | null;
+  } | null;
+}
+
+export function GPSRadar({ gps }: GPSRadarProps) {
   const [satellites, setSatellites] = useState<Satellite[]>(() => generateSatellites());
   const [sweepAngle, setSweepAngle] = useState(0);
   const animRef = useRef<number>(0);
@@ -92,7 +101,12 @@ export function GPSRadar() {
     };
   }
 
-  const trackedCount = satellites.filter((s) => s.snr >= 20).length;
+  const simTrackedCount = satellites.filter((s) => s.snr >= 20).length;
+  const trackedCount = gps ? gps.num_satellites : simTrackedCount;
+  const totalCount = gps ? gps.num_satellites : satellites.length;
+  const fixLabel = gps ? (gps.fix_type === 2 ? '3D Fix' : gps.fix_type === 1 ? '2D Fix' : 'No Fix') : '3D Fix';
+  const fixColor = gps ? (gps.fix_type === 2 ? '#ffbb00' : gps.fix_type === 1 ? '#ffbb00' : '#e2123f') : '#ffbb00';
+  const hdopValue = gps?.hdop != null ? (gps.hdop / 100).toFixed(1) : '1.2';
 
   return (
     <div
@@ -278,12 +292,12 @@ export function GPSRadar() {
           fontFamily={MONO_FONT}
         >
           <tspan fill="#96e212">{trackedCount}</tspan>
-          <tspan fill="#8c8c8c">/{satellites.length} Satellites</tspan>
+          <tspan fill="#8c8c8c">/{totalCount} Satellites</tspan>
           <tspan fill="#333"> | </tspan>
-          <tspan fill="#ffbb00">3D Fix</tspan>
+          <tspan fill={fixColor}>{fixLabel}</tspan>
           <tspan fill="#333"> | </tspan>
           <tspan fill="#8c8c8c">HDOP: </tspan>
-          <tspan fill="#96e212">1.2</tspan>
+          <tspan fill="#96e212">{hdopValue}</tspan>
         </text>
       </svg>
     </div>

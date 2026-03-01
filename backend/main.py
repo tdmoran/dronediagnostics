@@ -154,21 +154,23 @@ def gps_to_response(gps: GPSPosition) -> GPSDataResponse:
 
 
 async def broadcast_telemetry():
-    """Broadcast telemetry data to all connected WebSocket clients."""
+    """Broadcast full telemetry data to all connected WebSocket clients at 10Hz."""
     import time
-    
+
     while True:
         try:
             gps = msp.get_current_gps()
-            
+            extra = msp.get_full_telemetry()
+
             telemetry = {
                 "type": "telemetry",
                 "timestamp": time.time(),
-                "gps": gps_to_response(gps).dict() if gps else None
+                "gps": gps_to_response(gps).dict() if gps else None,
+                **extra,
             }
-            
+
             message = json.dumps(telemetry)
-            
+
             # Send to all connected clients
             disconnected = set()
             for client in connected_clients:
@@ -176,12 +178,12 @@ async def broadcast_telemetry():
                     await client.send_text(message)
                 except Exception:
                     disconnected.add(client)
-            
+
             # Remove disconnected clients
             connected_clients.difference_update(disconnected)
-            
+
             await asyncio.sleep(0.1)  # 10Hz update rate
-            
+
         except asyncio.CancelledError:
             break
         except Exception as e:
@@ -356,12 +358,24 @@ async def connect_serial(port: str, baudrate: int = 115200):
         # Start polling in background
         asyncio.create_task(conn.start_polling())
         
-        # Add callback to update global MSP data
-        def on_gps_data(data_type, data):
+        # Add callback to update global MSP data from serial polling
+        def on_telemetry_data(data_type, data):
             if data_type == 'gps':
                 msp.current_gps = data
+            elif data_type == 'imu':
+                msp.current_imu = data
+            elif data_type == 'attitude':
+                msp.current_attitude = data
+            elif data_type == 'status':
+                msp.current_status = data
+            elif data_type == 'motors':
+                msp.current_motors = data
+            elif data_type == 'rc':
+                msp.current_rc = data
+            elif data_type == 'battery':
+                msp.current_analog = data
         
-        conn.add_callback(on_gps_data)
+        conn.add_callback(on_telemetry_data)
         
         return {
             "connected": True,

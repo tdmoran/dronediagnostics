@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "dev:backend": "tsx watch backend/server.ts",
+    "dev:backend": "cd backend && ./venv/bin/python main.py",
     "dev:frontend": "next dev -p 3000",
     "build": "tsc && next build",
     "start": "next start",
