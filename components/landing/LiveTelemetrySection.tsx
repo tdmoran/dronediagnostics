@@ -2,7 +2,7 @@
 
 import { useTelemetry } from '@/components/TelemetryProvider';
 import { AttitudeIndicator } from './AttitudeIndicator';
-import { BatteryGauge } from './BatteryGauge';
+import { AircraftVisualization } from './AircraftVisualization';
 import { MotorLayout } from './MotorLayout';
 import { GPSRadar } from './GPSRadar';
 import { SignalStrength } from './SignalStrength';
@@ -45,12 +45,12 @@ export function LiveTelemetrySection() {
           <AttitudeIndicator attitude={telemetry?.attitude} />
         </div>
 
-        {/* Battery Gauge */}
+        {/* Aircraft 3D Visualization */}
         <div className="bg-[#1f1f1f] rounded-[4px] border border-[#333] p-4 flex flex-col items-center">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-[#8c8c8c] mb-3 self-start">
-            Power
+            Aircraft
           </h3>
-          <BatteryGauge battery={telemetry?.battery} />
+          <AircraftVisualization attitude={telemetry?.attitude} />
         </div>
 
         {/* Motor Layout */}
