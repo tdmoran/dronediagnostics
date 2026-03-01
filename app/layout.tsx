@@ -10,6 +10,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { DesktopSidebar } from "@/components/DesktopSidebar";
 import { AppProviders } from "@/components/AppProviders";
 import { TelemetryProvider } from "@/components/TelemetryProvider";
+import { TopBar } from "@/components/TopBar";
 
 const openSans = Open_Sans({ subsets: ["latin"], weight: ["400", "600", "700"] });
 
@@ -42,10 +43,13 @@ export default function RootLayout({
                   {/* Desktop sidebar - hidden on mobile */}
                   <DesktopSidebar />
 
-                  {/* Main content */}
-                  <main className="flex-1 min-w-0 p-4 lg:p-6">
-                    {children}
-                  </main>
+                  {/* Content area with top bar */}
+                  <div className="flex-1 min-w-0 flex flex-col">
+                    <TopBar />
+                    <main className="flex-1 min-w-0">
+                      {children}
+                    </main>
+                  </div>
                 </div>
 
                 {/* Toast notifications */}
