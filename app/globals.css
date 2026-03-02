@@ -2,6 +2,7 @@
 @config "../tailwind.config.js";
 
 @theme {
+  /* App-specific palette */
   --color-bf-bg: #141414;
   --color-bf-surface: #1f1f1f;
   --color-bf-surface-light: #242424;
@@ -23,6 +24,29 @@
   --shadow-bf-lg: 0 4px 12px rgba(0,0,0,0.5);
   --font-sans: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
   --font-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+
+  /* shadcn/ui semantic tokens — dark theme values so dropdowns/popovers/dialogs
+     match the app background instead of defaulting to browser light colours */
+  --color-background: #141414;
+  --color-foreground: #f2f2f2;
+  --color-card: #1f1f1f;
+  --color-card-foreground: #f2f2f2;
+  --color-popover: #1f1f1f;
+  --color-popover-foreground: #f2f2f2;
+  --color-primary: #ffbb00;
+  --color-primary-foreground: #141414;
+  --color-secondary: #242424;
+  --color-secondary-foreground: #f2f2f2;
+  --color-muted: #242424;
+  --color-muted-foreground: #8c8c8c;
+  --color-accent: #2a2a2a;
+  --color-accent-foreground: #f2f2f2;
+  --color-destructive: #e2123f;
+  --color-destructive-foreground: #f2f2f2;
+  --color-border: #333333;
+  --color-input: #2a2a2a;
+  --color-ring: #ffbb00;
+  --radius: 0.25rem;
 }
 
 * {
@@ -47,6 +71,24 @@
   --text: #f2f2f2;
   --text-muted: #8c8c8c;
   --border: #333333;
+
+  /* shadcn/ui HSL-convention fallbacks — used by bg-popover, bg-accent, etc.
+     These are plain hex values; shadcn resolves them directly when cssVariables=true */
+  --background: #141414;
+  --foreground: #f2f2f2;
+  --card: #1f1f1f;
+  --card-foreground: #f2f2f2;
+  --popover: #1f1f1f;
+  --popover-foreground: #f2f2f2;
+  --muted: #242424;
+  --muted-foreground: #8c8c8c;
+  --accent: #2a2a2a;
+  --accent-foreground: #f2f2f2;
+  --destructive: #e2123f;
+  --destructive-foreground: #f2f2f2;
+  --input: #2a2a2a;
+  --ring: #ffbb00;
+  --radius: 0.25rem;
 }
 
 body {
