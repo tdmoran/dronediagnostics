@@ -349,16 +349,18 @@ async def list_serial_ports():
     return {"ports": ports, "count": len(ports)}
 
 
+class ConnectRequest(BaseModel):
+    port: str
+    baud_rate: int = 115200
+
+
 @app.post("/api/serial/connect")
-async def connect_serial(port: str, baudrate: int = 115200):
+async def connect_serial(request: ConnectRequest):
     """Connect to serial port for MSP communication."""
-    conn = create_serial_connection(port, baudrate)
-    
+    conn = create_serial_connection(request.port, request.baud_rate)
+
     if conn.connect():
-        # Start polling in background
-        asyncio.create_task(conn.start_polling())
-        
-        # Add callback to update global MSP data from serial polling
+        # Add callback BEFORE starting polling so no data is missed
         def on_telemetry_data(data_type, data):
             if data_type == 'gps':
                 msp.current_gps = data
@@ -374,18 +376,22 @@ async def connect_serial(port: str, baudrate: int = 115200):
                 msp.current_rc = data
             elif data_type == 'battery':
                 msp.current_analog = data
-        
+
         conn.add_callback(on_telemetry_data)
-        
+
+        # Run blocking serial polling in a thread so the event loop stays free
+        loop = asyncio.get_event_loop()
+        loop.run_in_executor(None, conn.start_polling_sync)
+
         return {
             "connected": True,
-            "port": port,
-            "baudrate": baudrate
+            "port": request.port,
+            "baudrate": request.baud_rate,
         }
     else:
         return {
             "connected": False,
-            "error": f"Failed to connect to {port}"
+            "error": f"Failed to connect to {request.port}",
         }
 
 

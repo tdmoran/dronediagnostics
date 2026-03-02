@@ -194,8 +194,33 @@ class MSPSerialConnection:
         MSP_RAW_GPS,    # 106 – GPS position
     ]
 
+    def start_polling_sync(self, interval: float = 0.1):
+        """Synchronous polling loop — call via run_in_executor to avoid blocking the event loop."""
+        import time
+        self.running = True
+        logger.info("Serial polling started")
+
+        while self.running:
+            try:
+                for cmd in self.POLL_COMMANDS:
+                    if not self.running:
+                        break
+                    if self.send_msp_command(cmd):
+                        response = self.read_response(timeout=0.5)
+                        if response:
+                            command, data = response
+                            self.process_response(command, data)
+
+                time.sleep(interval)
+
+            except Exception as e:
+                logger.error(f"Polling error: {e}")
+                time.sleep(interval)
+
+        logger.info("Serial polling stopped")
+
     async def start_polling(self, interval: float = 0.1):
-        """Start polling all telemetry data in background."""
+        """Async wrapper kept for compatibility — prefer start_polling_sync via run_in_executor."""
         self.running = True
 
         while self.running:
