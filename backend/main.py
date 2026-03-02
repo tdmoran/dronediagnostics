@@ -313,6 +313,88 @@ async def simulate_gps_data(lat: float = 51.5074, lon: float = -0.1278):
     return {"message": "GPS data simulated", "gps": gps_to_response(gps).dict()}
 
 
+@app.websocket("/ws/cli")
+async def websocket_cli(websocket: WebSocket):
+    """WebSocket for live Betaflight CLI passthrough over the open serial connection."""
+    await websocket.accept()
+
+    conn = get_serial_connection()
+    if not conn or not conn.serial or not conn.serial.is_open:
+        await websocket.send_text("# ERROR: No serial connection. Connect to a flight controller first.\n")
+        await websocket.close()
+        return
+
+    # Pause MSP polling so we have exclusive serial access
+    was_running = conn.running
+    conn.running = False
+    conn.serial.timeout = 0.1
+    await asyncio.sleep(0.35)  # Let the polling thread finish its current read
+
+    conn.serial.reset_input_buffer()
+    conn.serial.reset_output_buffer()
+
+    async def serial_read(n: int) -> bytes:
+        return await asyncio.to_thread(conn.serial.read, n)
+
+    async def read_until_prompt(timeout: float = 3.0) -> bytes:
+        """Accumulate bytes until Betaflight's '# ' prompt appears or timeout."""
+        buf = b''
+        deadline = asyncio.get_event_loop().time() + timeout
+        while asyncio.get_event_loop().time() < deadline:
+            chunk = await serial_read(1024)
+            if chunk:
+                buf += chunk
+                if buf.endswith(b'# ') or b'\n# ' in buf[-8:]:
+                    break
+            else:
+                if buf:
+                    break  # Got some data, nothing more arriving
+        return buf
+
+    try:
+        # Enter CLI mode by sending '#' (Betaflight recognises this as CLI entry)
+        await asyncio.to_thread(conn.serial.write, b'#\r\n')
+        conn.serial.flush()
+
+        banner = await read_until_prompt(timeout=2.0)
+        await websocket.send_text(banner.decode('utf-8', errors='replace') if banner else "# Betaflight CLI\n# ")
+
+        while True:
+            data = await websocket.receive_text()
+            cmd = data.strip()
+
+            if cmd == '__exit__':
+                break
+
+            await asyncio.to_thread(conn.serial.write, (cmd + '\r\n').encode())
+            conn.serial.flush()
+
+            response = await read_until_prompt(timeout=5.0)
+            await websocket.send_text(response.decode('utf-8', errors='replace'))
+
+    except WebSocketDisconnect:
+        pass
+    except Exception as e:
+        logger.error(f"CLI WebSocket error: {e}")
+    finally:
+        # Exit CLI and resume MSP polling
+        try:
+            await asyncio.to_thread(conn.serial.write, b'exit\r\n')
+            conn.serial.flush()
+            await asyncio.sleep(0.2)
+            conn.serial.reset_input_buffer()
+        except Exception:
+            pass
+
+        if was_running:
+            conn.running = True
+            conn.serial.timeout = 1
+            loop = asyncio.get_event_loop()
+            loop.run_in_executor(None, conn.start_polling_sync)
+
+        logger.info("CLI WebSocket session closed")
+
+
 @app.websocket("/ws/telemetry")
 async def websocket_telemetry(websocket: WebSocket):
     """
