@@ -3,10 +3,10 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { 
-  LayoutDashboard, 
-  MapPin, 
-  Settings, 
+import {
+  LayoutDashboard,
+  MapPin,
+  Settings,
   Activity,
   Battery,
   Radio,
@@ -15,7 +15,10 @@ import {
   X,
   FileText,
   Cpu,
-  ChevronRight
+  ChevronRight,
+  Sliders,
+  Zap,
+  Terminal,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 
@@ -60,9 +63,24 @@ const sidebarItems: SidebarItem[] = [
     icon: <Radio className="w-5 h-5" />,
   },
   {
+    label: "PID Tuning",
+    href: "/pid",
+    icon: <Sliders className="w-5 h-5" />,
+  },
+  {
+    label: "Motors",
+    href: "/motors",
+    icon: <Zap className="w-5 h-5" />,
+  },
+  {
     label: "Blackbox",
     href: "/blackbox",
     icon: <FileText className="w-5 h-5" />,
+  },
+  {
+    label: "CLI",
+    href: "/cli",
+    icon: <Terminal className="w-5 h-5" />,
   },
   {
     label: "Firmware",
@@ -162,11 +180,11 @@ export function MobileSidebar({ className }: MobileSidebarProps) {
             </div>
 
             {/* Navigation */}
-            <nav className="p-4">
+            <nav className="p-4 overflow-y-auto max-h-[calc(100vh-140px)]">
               <ul className="space-y-1">
                 {sidebarItems.map((item) => {
                   const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
-                  
+
                   return (
                     <li key={item.href}>
                       <Link

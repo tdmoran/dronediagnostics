@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTelemetry } from '@/components/TelemetryProvider';
 
@@ -7,16 +8,19 @@ const FONT = "'SF Mono', Monaco, 'Cascadia Code', monospace";
 
 const routeTitles: Record<string, string> = {
   '/': 'Setup',
+  '/dashboard': 'Dashboard',
   '/gps': 'GPS',
   '/telemetry': 'Telemetry',
   '/battery': 'Battery',
-  '/radio': 'Radio',
+  '/radio': 'Radio / Receiver',
+  '/pid': 'PID Tuning',
+  '/motors': 'Motors',
+  '/cli': 'CLI',
   '/diagnose': 'Diagnose',
   '/blackbox': 'Blackbox',
   '/firmware': 'Firmware',
   '/config': 'Configuration',
   '/settings': 'Settings',
-  '/dashboard': 'Dashboard',
 };
 
 export function TopBar() {
@@ -70,6 +74,22 @@ export function TopBar() {
       >
         Calibrate
       </button>
+
+      {/* Connect / port display */}
+      {connected && (
+        <span className="text-[10px] text-[#8c8c8c] font-mono hidden xl:block truncate max-w-[120px]">
+          /dev/ttyUSB0
+        </span>
+      )}
+      {!connected && (
+        <Link
+          href="/gps"
+          className="text-[10px] font-semibold uppercase tracking-wider px-3 py-1 rounded-sm bg-[#96e212]/10 text-[#96e212] border border-[#96e212]/30 hover:bg-[#96e212]/20 transition-colors"
+          style={{ fontFamily: FONT }}
+        >
+          Connect
+        </Link>
+      )}
 
       <button
         className={`text-[10px] font-semibold uppercase tracking-wider px-3 py-1 rounded-sm transition-colors border ${
