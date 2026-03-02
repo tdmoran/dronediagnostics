@@ -52,7 +52,20 @@ interface TelemetryWaveformProps {
 }
 
 export function TelemetryWaveform({ gyro }: TelemetryWaveformProps) {
-  const [buffers, setBuffers] = useState<[number[], number[], number[]]>(() => {
+  // Initialize with flat zeros — SSR-safe (no Math.random). Populated client-side in useEffect.
+  const [buffers, setBuffers] = useState<[number[], number[], number[]]>(() => [
+    new Array(BUFFER_SIZE).fill(0) as number[],
+    new Array(BUFFER_SIZE).fill(0) as number[],
+    new Array(BUFFER_SIZE).fill(0) as number[],
+  ]);
+
+  const tRef = useRef(0);
+  const rafRef = useRef<number>(0);
+  const lastFrameRef = useRef(0);
+  const liveGyroRef = useRef(gyro);
+
+  // Populate initial buffer client-side only (Math.random must not run during SSR)
+  useEffect(() => {
     const initial: [number[], number[], number[]] = [[], [], []];
     for (let i = 0; i < BUFFER_SIZE; i++) {
       const t = (i - BUFFER_SIZE) / 30;
@@ -60,13 +73,8 @@ export function TelemetryWaveform({ gyro }: TelemetryWaveformProps) {
       initial[1].push(generateSample(t, 1));
       initial[2].push(generateSample(t, 2));
     }
-    return initial;
-  });
-
-  const tRef = useRef(0);
-  const rafRef = useRef<number>(0);
-  const lastFrameRef = useRef(0);
-  const liveGyroRef = useRef(gyro);
+    setBuffers(initial);
+  }, []);
 
   // Keep ref in sync with latest prop
   useEffect(() => {

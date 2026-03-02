@@ -418,6 +418,27 @@ async def serial_status():
     return {"connected": False}
 
 
+@app.get("/api/telemetry")
+async def get_telemetry_snapshot():
+    """Return the latest telemetry snapshot for all sensors."""
+    conn = get_serial_connection()
+    serial_connected = bool(conn and conn.serial and conn.serial.is_open)
+    data = msp.get_full_telemetry()
+    gps = msp.get_current_gps()
+    return {
+        "connected": serial_connected,
+        **data,
+        "gps": {
+            "lat": gps.lat if gps else 0,
+            "lon": gps.lon if gps else 0,
+            "fix_type": gps.fix_type if gps else 0,
+            "num_satellites": gps.num_satellites if gps else 0,
+            "altitude": gps.altitude if gps else 0,
+            "speed": gps.speed if gps else 0,
+        } if gps else None,
+    }
+
+
 @app.get("/api/health")
 async def health_check():
     """Health check endpoint."""

@@ -1,5 +1,5 @@
 // lib/diagnostics.ts
-// Diagnostic rules and knowledge base for Betaflight/INAV drone diagnostics
+// Diagnostic rules and hardware checks — uses live telemetry from FastAPI backend
 
 export type HardwareStatus = 'working' | 'warning' | 'failed' | 'not_detected';
 
@@ -24,7 +24,7 @@ export interface HardwareReport {
   };
 }
 
-export type ProblemType = 
+export type ProblemType =
   | 'wont_arm'
   | 'unstable_flight'
   | 'gps_no_fix'
@@ -56,22 +56,37 @@ export interface DiagnosisResult {
   };
 }
 
-// Hardware check functions
+// Betaflight MSP_STATUS sensors bitmask
+const SENSOR_ACC   = 1 << 0;
+const SENSOR_BARO  = 1 << 1;
+const SENSOR_MAG   = 1 << 2;
+const SENSOR_GPS   = 1 << 3;
+const SENSOR_SONAR = 1 << 4;
+
+async function fetchTelemetry(): Promise<Record<string, any> | null> {
+  try {
+    const res = await fetch('http://localhost:8000/api/telemetry', { cache: 'no-store' });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
 export async function runHardwareChecks(): Promise<HardwareReport> {
-  // In a real implementation, these would query the FC via MSP/CLI
-  // For now, we simulate realistic responses
-  
+  const telem = await fetchTelemetry();
+  const connected = telem?.connected ?? false;
+
   const checks: HardwareCheck[] = [
-    await checkGyro(),
-    await checkAccelerometer(),
-    await checkMotors(),
-    await checkBattery(),
-    await checkGPS(),
-    await checkReceiver(),
-    await checkBarometer(),
-    await checkCompass(),
-    await checkESCs(),
-    await checkBlackbox(),
+    checkGyro(telem),
+    checkAccelerometer(telem),
+    checkMotors(telem),
+    checkBattery(telem),
+    checkGPS(telem),
+    checkReceiver(telem),
+    checkBarometer(telem),
+    checkCompass(telem),
+    checkConnection(connected),
   ];
 
   const summary = {
@@ -81,162 +96,259 @@ export async function runHardwareChecks(): Promise<HardwareReport> {
     notDetected: checks.filter(c => c.status === 'not_detected').length,
   };
 
-  // Calculate overall health score
-  const total = checks.length;
   const health = Math.round(
-    (summary.working * 100 + summary.warning * 50 + summary.failed * 0 + summary.notDetected * 75) / total
+    (summary.working * 100 + summary.warning * 50 + summary.notDetected * 75) / checks.length
   );
 
+  return { timestamp: Date.now(), overallHealth: health, checks, summary };
+}
+
+function checkConnection(connected: boolean): HardwareCheck {
   return {
-    timestamp: Date.now(),
-    overallHealth: health,
-    checks,
-    summary,
+    name: 'FC Connection',
+    status: connected ? 'working' : 'failed',
+    message: connected ? 'Flight controller connected via MSP' : 'No flight controller connected',
+    details: connected ? 'Serial polling active' : 'Connect via the sidebar port selector',
   };
 }
 
-async function checkGyro(): Promise<HardwareCheck> {
-  // Simulate gyro check
-  return {
-    name: 'Gyroscope',
-    status: 'working',
-    message: 'MPU6000 detected',
-    details: 'Noise level normal, no drift detected',
-    value: 0.02,
-    unit: 'deg/s',
-  };
+function checkGyro(telem: Record<string, any> | null): HardwareCheck {
+  if (!telem?.connected) {
+    return { name: 'Gyroscope', status: 'not_detected', message: 'No FC connected' };
+  }
+
+  const sensors: number = telem?.status?.sensors ?? 0;
+  const gyro = telem?.gyro;
+
+  // If we're getting IMU data, gyro is working
+  if (gyro) {
+    const noise = Math.sqrt(gyro.x ** 2 + gyro.y ** 2 + gyro.z ** 2);
+    const status: HardwareStatus = noise > 80 ? 'warning' : 'working';
+    return {
+      name: 'Gyroscope',
+      status,
+      message: status === 'working' ? 'Gyro responding normally' : 'High gyro noise detected',
+      details: `X=${gyro.x.toFixed(1)} Y=${gyro.y.toFixed(1)} Z=${gyro.z.toFixed(1)} deg/s`,
+      value: noise.toFixed(1),
+      unit: 'deg/s noise',
+    };
+  }
+
+  // Accelerometer sensor bit implies gyro chip is also present (same die on most FCs)
+  if (sensors & SENSOR_ACC) {
+    return { name: 'Gyroscope', status: 'working', message: 'Detected via sensor flags', details: 'No IMU stream yet' };
+  }
+
+  return { name: 'Gyroscope', status: 'not_detected', message: 'No gyro data received', details: 'Check MSP_STATUS sensor flags' };
 }
 
-async function checkAccelerometer(): Promise<HardwareCheck> {
-  return {
-    name: 'Accelerometer',
-    status: 'working',
-    message: 'Working normally',
-    details: 'Calibration valid',
-    value: 9.81,
-    unit: 'm/s²',
-  };
+function checkAccelerometer(telem: Record<string, any> | null): HardwareCheck {
+  if (!telem?.connected) {
+    return { name: 'Accelerometer', status: 'not_detected', message: 'No FC connected' };
+  }
+
+  const sensors: number = telem?.status?.sensors ?? 0;
+  const accel = telem?.accel;
+
+  if (accel) {
+    const magnitude = Math.sqrt(accel.x ** 2 + accel.y ** 2 + accel.z ** 2);
+    const status: HardwareStatus = Math.abs(magnitude - 1.0) > 0.3 ? 'warning' : 'working';
+    return {
+      name: 'Accelerometer',
+      status,
+      message: status === 'working' ? 'Calibration valid' : 'Possible calibration drift',
+      details: `|g|=${magnitude.toFixed(3)}g (expected ≈1.0g at rest)`,
+      value: magnitude.toFixed(3),
+      unit: 'g',
+    };
+  }
+
+  if (sensors & SENSOR_ACC) {
+    return { name: 'Accelerometer', status: 'working', message: 'Detected via sensor flags' };
+  }
+
+  return { name: 'Accelerometer', status: 'not_detected', message: 'Not detected by FC' };
 }
 
-async function checkMotors(): Promise<HardwareCheck> {
+function checkMotors(telem: Record<string, any> | null): HardwareCheck {
+  if (!telem?.connected) {
+    return { name: 'Motors', status: 'not_detected', message: 'No FC connected' };
+  }
+
+  const motors: number[] | undefined = telem?.motors;
+  if (!motors) {
+    return { name: 'Motors', status: 'not_detected', message: 'No motor data received' };
+  }
+
+  const activeMotors = motors.filter((m: number) => m > 0).length;
+  const idleMotors = motors.filter((m: number) => m >= 1000 && m <= 1100).length;
+
+  if (activeMotors === 0) {
+    return {
+      name: 'Motors',
+      status: 'warning',
+      message: 'Motors at zero — disarmed or ESC protocol mismatch',
+      details: `Values: ${motors.slice(0, 4).join(', ')}`,
+    };
+  }
+
   return {
     name: 'Motors',
     status: 'working',
-    message: '4 motors detected',
-    details: 'Motor 1-4 responding to DShot300',
-    value: 4,
+    message: `${activeMotors} motors reporting`,
+    details: `Values: ${motors.slice(0, 4).join(', ')}`,
+    value: activeMotors,
     unit: 'motors',
   };
 }
 
-async function checkBattery(): Promise<HardwareCheck> {
-  const voltage = 16.4; // Simulated 4S voltage
-  const cells = 4;
-  const cellVoltage = voltage / cells;
-  
+function checkBattery(telem: Record<string, any> | null): HardwareCheck {
+  if (!telem?.connected) {
+    return { name: 'Battery', status: 'not_detected', message: 'No FC connected' };
+  }
+
+  const battery = telem?.battery;
+  if (!battery) {
+    return { name: 'Battery', status: 'not_detected', message: 'No battery telemetry received' };
+  }
+
+  const voltage: number = battery.voltage;
+  if (voltage < 1) {
+    return { name: 'Battery', status: 'not_detected', message: 'No battery detected (0V)', details: 'Check voltage sense wiring' };
+  }
+
+  // Estimate cell count (most common: 1S=3-4.2V, 2S=6-8.4V, 3S=9-12.6V, 4S=12-16.8V)
+  const cellCount = voltage > 12 ? 4 : voltage > 9 ? 3 : voltage > 6 ? 2 : 1;
+  const cellV = voltage / cellCount;
+
   let status: HardwareStatus = 'working';
-  let message = 'Battery healthy';
-  
-  if (cellVoltage < 3.3) {
+  let message = `Battery healthy (${cellCount}S)`;
+
+  if (cellV < 3.3) {
     status = 'warning';
-    message = 'Battery low';
-  } else if (cellVoltage < 3.0) {
+    message = `Low battery — ${cellV.toFixed(2)}V/cell`;
+  }
+  if (cellV < 3.0) {
     status = 'failed';
-    message = 'Battery critically low';
+    message = `Critical battery — ${cellV.toFixed(2)}V/cell`;
   }
 
   return {
     name: 'Battery',
     status,
     message,
-    details: `${cells}S LiPo, ${cellVoltage.toFixed(2)}V per cell`,
-    value: voltage,
+    details: `${cellCount}S estimated, ${cellV.toFixed(2)}V/cell`,
+    value: voltage.toFixed(1),
     unit: 'V',
   };
 }
 
-async function checkGPS(): Promise<HardwareCheck> {
+function checkGPS(telem: Record<string, any> | null): HardwareCheck {
+  if (!telem?.connected) {
+    return { name: 'GPS', status: 'not_detected', message: 'No FC connected' };
+  }
+
+  const sensors: number = telem?.status?.sensors ?? 0;
+  const gps = telem?.gps;
+
+  // Check sensors bitmask
+  if (!(sensors & SENSOR_GPS) && !gps) {
+    return { name: 'GPS', status: 'not_detected', message: 'GPS not enabled in FC', details: 'Enable GPS in Ports + Configuration tabs' };
+  }
+
+  if (!gps) {
+    return { name: 'GPS', status: 'warning', message: 'GPS enabled but no data yet', details: 'Waiting for GPS module to respond' };
+  }
+
+  const sats = gps.num_satellites;
+  const fixType = gps.fix_type;
+
+  if (fixType === 0) {
+    return {
+      name: 'GPS',
+      status: sats > 3 ? 'warning' : 'not_detected',
+      message: sats > 0 ? `Searching — ${sats} satellites` : 'No GPS fix (searching)',
+      details: 'Move outdoors with clear sky view',
+      value: sats,
+      unit: 'sats',
+    };
+  }
+
   return {
     name: 'GPS',
-    status: 'working',
-    message: 'GPS module detected',
-    details: '14 satellites, 3D fix',
-    value: 14,
+    status: sats >= 6 ? 'working' : 'warning',
+    message: fixType >= 2 ? `3D fix — ${sats} satellites` : `2D fix — ${sats} satellites`,
+    details: `Fix type ${fixType}, lat=${gps.lat.toFixed(6)}, lon=${gps.lon.toFixed(6)}`,
+    value: sats,
     unit: 'sats',
   };
 }
 
-async function checkReceiver(): Promise<HardwareCheck> {
+function checkReceiver(telem: Record<string, any> | null): HardwareCheck {
+  if (!telem?.connected) {
+    return { name: 'Receiver', status: 'not_detected', message: 'No FC connected' };
+  }
+
+  const rc: number[] | undefined = telem?.rc;
+  if (!rc || rc.length === 0) {
+    return { name: 'Receiver', status: 'failed', message: 'No RC channel data', details: 'Check receiver binding and UART assignment' };
+  }
+
+  const activeChannels = rc.filter((v: number) => v >= 900 && v <= 2100).length;
+  const rssi = telem?.battery?.rssi;
+
+  if (activeChannels < 4) {
+    return {
+      name: 'Receiver',
+      status: 'warning',
+      message: `Only ${activeChannels} valid channels (need ≥4)`,
+      details: rc.slice(0, 8).join(', '),
+    };
+  }
+
+  const rssiPct = rssi != null ? (rssi > 100 ? Math.round(rssi / 10.23) : rssi) : null;
+  const rssiStatus: HardwareStatus = rssiPct == null ? 'working' : rssiPct > 60 ? 'working' : rssiPct > 30 ? 'warning' : 'failed';
+
   return {
     name: 'Receiver',
-    status: 'working',
-    message: 'CRSF receiver detected',
-    details: 'RSSI: -45dBm, 12 channels active',
-    value: -45,
-    unit: 'dBm',
+    status: rssiStatus,
+    message: rssiStatus === 'working' ? `${activeChannels} channels active` : `Weak signal — RSSI ${rssiPct}%`,
+    details: `Ch1-4: ${rc.slice(0, 4).join(', ')}${rssiPct != null ? ` | RSSI: ${rssiPct}%` : ''}`,
+    value: activeChannels,
+    unit: 'channels',
   };
 }
 
-async function checkBarometer(): Promise<HardwareCheck> {
-  return {
-    name: 'Barometer',
-    status: 'not_detected',
-    message: 'No barometer detected',
-    details: 'Altitude hold not available',
-  };
+function checkBarometer(telem: Record<string, any> | null): HardwareCheck {
+  if (!telem?.connected) {
+    return { name: 'Barometer', status: 'not_detected', message: 'No FC connected' };
+  }
+  const sensors: number = telem?.status?.sensors ?? 0;
+  return sensors & SENSOR_BARO
+    ? { name: 'Barometer', status: 'working', message: 'Barometer detected', details: 'Altitude hold available' }
+    : { name: 'Barometer', status: 'not_detected', message: 'No barometer detected', details: 'Altitude hold not available' };
 }
 
-async function checkCompass(): Promise<HardwareCheck> {
-  return {
-    name: 'Compass',
-    status: 'not_detected',
-    message: 'No magnetometer detected',
-    details: 'GPS rescue and position hold may be limited',
-  };
+function checkCompass(telem: Record<string, any> | null): HardwareCheck {
+  if (!telem?.connected) {
+    return { name: 'Compass', status: 'not_detected', message: 'No FC connected' };
+  }
+  const sensors: number = telem?.status?.sensors ?? 0;
+  return sensors & SENSOR_MAG
+    ? { name: 'Compass', status: 'working', message: 'Magnetometer detected', details: 'GPS rescue heading available' }
+    : { name: 'Compass', status: 'not_detected', message: 'No magnetometer detected', details: 'GPS rescue heading limited' };
 }
 
-async function checkESCs(): Promise<HardwareCheck> {
-  return {
-    name: 'ESCs',
-    status: 'working',
-    message: 'ESCs communicating',
-    details: 'DShot300 protocol active, telemetry enabled',
-    value: 4,
-    unit: 'ESCs',
-  };
-}
-
-async function checkBlackbox(): Promise<HardwareCheck> {
-  return {
-    name: 'Blackbox',
-    status: 'working',
-    message: 'SD card detected',
-    details: '7.2GB free space, logging enabled',
-    value: 7200,
-    unit: 'MB',
-  };
-}
-
-// Problem diagnosis logic
+// Problem diagnosis logic (unchanged — knowledge base)
 export async function diagnoseProblem(
   problem: ProblemType,
   hardwareReport: HardwareReport
 ): Promise<DiagnosisResult> {
   const causes = getCausesForProblem(problem, hardwareReport);
-  
-  // Sort by likelihood
   const likelihoodOrder = { high: 0, medium: 1, low: 2 };
   causes.sort((a, b) => likelihoodOrder[a.likelihood] - likelihoodOrder[b.likelihood]);
-
-  // Run quick checks
-  const quickChecks = await runQuickChecks(problem, hardwareReport);
-
-  return {
-    problem,
-    timestamp: Date.now(),
-    causes,
-    quickChecks,
-  };
+  const quickChecks = runQuickChecks(problem, hardwareReport);
+  return { problem, timestamp: Date.now(), causes, quickChecks };
 }
 
 function getCausesForProblem(problem: ProblemType, report: HardwareReport): DiagnosisCause[] {
@@ -249,9 +361,9 @@ function getCausesForProblem(problem: ProblemType, report: HardwareReport): Diag
         description: 'The arm switch on your transmitter is not in the ON position',
         why: 'Betaflight requires a dedicated AUX channel configured as an ARM switch for safety',
         fix: [
-          'Check your transmitter - ensure the arm switch is in the correct position',
+          'Check your transmitter — ensure the arm switch is in the correct position',
           'Verify in Receiver tab that the AUX channel moves when you toggle the switch',
-          'Confirm the channel range includes 1700-2100 when switch is ON',
+          'Confirm the channel range includes 1700–2100 when switch is ON',
         ],
         wikiLink: 'https://betaflight.com/docs/wiki/guides/current/Arming-Sequence-And-Safety',
       },
@@ -264,7 +376,7 @@ function getCausesForProblem(problem: ProblemType, report: HardwareReport): Diag
         fix: [
           'Leave the quad perfectly still on a flat surface for 5 seconds after power on',
           'Click "Recalibrate Gyro" in the Quick Fixes section',
-          'Check that the gyro noise is acceptable in the Sensors tab',
+          'Check gyro noise in the Sensors tab',
         ],
       },
       {
@@ -304,7 +416,6 @@ function getCausesForProblem(problem: ProblemType, report: HardwareReport): Diag
         ],
       },
     ],
-    
     unstable_flight: [
       {
         id: 'pid_tuning',
@@ -314,7 +425,7 @@ function getCausesForProblem(problem: ProblemType, report: HardwareReport): Diag
         why: 'Default PIDs may not work well for all builds, causing oscillations',
         fix: [
           'Run PID autotune in Betaflight',
-          'Manually reduce P gains by 20-30% if oscillating',
+          'Manually reduce P gains by 20–30% if oscillating',
           'Increase D gain slightly if wobbling in wind',
         ],
         wikiLink: 'https://betaflight.com/docs/wiki/guides/current/PID-Tuning-Guide',
@@ -357,7 +468,6 @@ function getCausesForProblem(problem: ProblemType, report: HardwareReport): Diag
         ],
       },
     ],
-    
     gps_no_fix: [
       {
         id: 'gps_location',
@@ -388,15 +498,14 @@ function getCausesForProblem(problem: ProblemType, report: HardwareReport): Diag
         likelihood: 'medium',
         title: 'GPS cold start',
         description: 'GPS needs time to download satellite data',
-        why: 'First fix can take 2-5 minutes without assistance',
+        why: 'First fix can take 2–5 minutes without assistance',
         fix: [
-          'Wait 3-5 minutes for first fix',
+          'Wait 3–5 minutes for first fix',
           'Use GPS with GLONASS/Galileo for faster fix',
           'Ensure you have clear sky visibility',
         ],
       },
     ],
-    
     motors_not_spinning: [
       {
         id: 'motor_protocol',
@@ -435,7 +544,6 @@ function getCausesForProblem(problem: ProblemType, report: HardwareReport): Diag
         ],
       },
     ],
-    
     motors_no_thrust: [
       {
         id: 'prop_direction',
@@ -444,7 +552,7 @@ function getCausesForProblem(problem: ProblemType, report: HardwareReport): Diag
         description: 'Propellers installed with wrong orientation',
         why: 'Props must generate airflow downward for lift',
         fix: [
-          'Check prop orientation - leading edge should face up/fwd',
+          'Check prop orientation — leading edge should face up/forward',
           'Verify props are on correct motors (CW/CCW)',
           'Refer to motor direction diagram in Betaflight',
         ],
@@ -469,12 +577,11 @@ function getCausesForProblem(problem: ProblemType, report: HardwareReport): Diag
         why: 'Throttle endpoints may be incorrect',
         fix: [
           'Calibrate ESCs in Motors tab',
-          'Verify throttle range is 1000-2000 in Receiver tab',
+          'Verify throttle range is 1000–2000 in Receiver tab',
           'Adjust transmitter endpoints if needed',
         ],
       },
     ],
-    
     receiver_no_signal: [
       {
         id: 'receiver_binding',
@@ -513,7 +620,6 @@ function getCausesForProblem(problem: ProblemType, report: HardwareReport): Diag
         ],
       },
     ],
-    
     battery_voltage_wrong: [
       {
         id: 'voltage_scale',
@@ -540,7 +646,6 @@ function getCausesForProblem(problem: ProblemType, report: HardwareReport): Diag
         ],
       },
     ],
-    
     fc_not_connecting: [
       {
         id: 'usb_cable',
@@ -579,7 +684,6 @@ function getCausesForProblem(problem: ProblemType, report: HardwareReport): Diag
         ],
       },
     ],
-    
     gyro_drift: [
       {
         id: 'vibration',
@@ -607,7 +711,6 @@ function getCausesForProblem(problem: ProblemType, report: HardwareReport): Diag
         ],
       },
     ],
-    
     failsafe_issues: [
       {
         id: 'failsafe_mode',
@@ -640,83 +743,72 @@ function getCausesForProblem(problem: ProblemType, report: HardwareReport): Diag
   return causes[problem] || [];
 }
 
-async function runQuickChecks(problem: ProblemType, report: HardwareReport): Promise<{passed: string[]; failed: string[]}> {
+function runQuickChecks(problem: ProblemType, report: HardwareReport): { passed: string[]; failed: string[] } {
   const passed: string[] = [];
   const failed: string[] = [];
 
-  // Common checks based on hardware report
-  const gyroCheck = report.checks.find(c => c.name === 'Gyroscope');
-  if (gyroCheck?.status === 'working') {
-    passed.push('Gyroscope functioning');
-  } else {
-    failed.push('Gyroscope issue detected');
-  }
+  const get = (name: string) => report.checks.find(c => c.name === name);
 
-  const motorCheck = report.checks.find(c => c.name === 'Motors');
-  if (motorCheck?.status === 'working') {
-    passed.push('Motors responding');
-  } else {
-    failed.push('Motor communication failed');
-  }
+  const fc = get('FC Connection');
+  if (fc?.status === 'working') passed.push('Flight controller connected');
+  else failed.push('Flight controller not connected');
 
-  const receiverCheck = report.checks.find(c => c.name === 'Receiver');
-  if (receiverCheck?.status === 'working') {
-    passed.push('Receiver connected');
-  } else {
-    failed.push('No receiver signal');
-  }
+  const gyro = get('Gyroscope');
+  if (gyro?.status === 'working') passed.push('Gyroscope functioning');
+  else if (gyro?.status === 'warning') failed.push('Gyro noise elevated');
+  else failed.push('Gyroscope not detected');
 
-  // Problem-specific checks
+  const motors = get('Motors');
+  if (motors?.status === 'working') passed.push('Motors responding');
+  else failed.push('Motor data missing or zero');
+
+  const rx = get('Receiver');
+  if (rx?.status === 'working') passed.push('Receiver connected');
+  else failed.push('No receiver signal');
+
   switch (problem) {
     case 'wont_arm':
       if (report.overallHealth > 80) passed.push('Hardware health good');
-      else failed.push('Hardware issues present');
+      else failed.push('Hardware issues present — check checks above');
       break;
-    case 'gps_no_fix':
-      const gpsCheck = report.checks.find(c => c.name === 'GPS');
-      if (gpsCheck?.status === 'working') passed.push('GPS module detected');
-      else failed.push('GPS not detected');
+    case 'gps_no_fix': {
+      const gps = get('GPS');
+      if (gps?.status === 'working') passed.push('GPS module detected');
+      else failed.push('GPS not detected or no fix');
       break;
+    }
+    case 'battery_voltage_wrong': {
+      const bat = get('Battery');
+      if (bat?.status === 'working') passed.push('Battery voltage plausible');
+      else failed.push(`Battery issue: ${bat?.message}`);
+      break;
+    }
   }
 
   return { passed, failed };
 }
 
-// Quick fix actions
-export async function recalibrateGyro(): Promise<{success: boolean; message: string}> {
-  // Simulate gyro recalibration
+// Quick fix stubs (these call real backend actions when implemented)
+export async function recalibrateGyro(): Promise<{ success: boolean; message: string }> {
   await new Promise(resolve => setTimeout(resolve, 2000));
-  return {
-    success: true,
-    message: 'Gyro calibration complete. Keep quad still for best results.',
-  };
+  return { success: true, message: 'Gyro calibration complete. Keep quad still for best results.' };
 }
 
-export async function resetToDefaults(): Promise<{success: boolean; message: string}> {
-  // Simulate reset
+export async function resetToDefaults(): Promise<{ success: boolean; message: string }> {
   await new Promise(resolve => setTimeout(resolve, 1500));
-  return {
-    success: true,
-    message: 'Settings reset to defaults. Please recalibrate sensors.',
-  };
+  return { success: true, message: 'Settings reset to defaults. Please recalibrate sensors.' };
 }
 
-export async function runMotorTest(): Promise<{success: boolean; message: string; results?: number[]}> {
-  // Simulate motor test
+export async function runMotorTest(): Promise<{ success: boolean; message: string; results?: number[] }> {
   await new Promise(resolve => setTimeout(resolve, 3000));
-  return {
-    success: true,
-    message: 'Motor test complete. All 4 motors responding.',
-    results: [1050, 1060, 1045, 1055], // RPM at idle
-  };
+  return { success: true, message: 'Motor test complete. All 4 motors responding.', results: [1050, 1060, 1045, 1055] };
 }
 
-// Health score calculation
 export function calculateHealthScore(report: HardwareReport): number {
   return report.overallHealth;
 }
 
-export function getHealthStatus(score: number): {status: 'excellent' | 'good' | 'fair' | 'poor'; color: string} {
+export function getHealthStatus(score: number): { status: 'excellent' | 'good' | 'fair' | 'poor'; color: string } {
   if (score >= 90) return { status: 'excellent', color: 'green' };
   if (score >= 70) return { status: 'good', color: 'blue' };
   if (score >= 50) return { status: 'fair', color: 'yellow' };
