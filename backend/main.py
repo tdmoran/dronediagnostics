@@ -526,12 +526,21 @@ class BlackboxParser:
         voltages = [f.voltage for f in frames if f.voltage]
         currents = [f.current for f in frames if f.current]
         
+        # Calculate actual distance by integrating speed over time
+        distance_traveled = 0.0
+        for i in range(1, len(frames)):
+            prev, curr = frames[i - 1], frames[i]
+            if prev.speed is not None and curr.speed is not None:
+                dt = (curr.timestamp - prev.timestamp) / 1_000_000  # microseconds to seconds
+                avg_speed = (prev.speed + curr.speed) / 2
+                distance_traveled += avg_speed * dt / 100  # cm/s to m
+
         return FlightStatistics(
             duration=duration, maxSpeed=max_speed, maxAltitude=max_altitude,
             maxGyroRate=max_gyro_rate, maxAccel=max_accel,
             avgVoltage=sum(voltages)/len(voltages) if voltages else 0,
             avgCurrent=sum(currents)/len(currents) if currents else 0,
-            maxCurrent=max_current, distanceTraveled=max_speed * duration
+            maxCurrent=max_current, distanceTraveled=distance_traveled
         )
     
     def parse(self) -> BlackboxLog:
@@ -582,14 +591,12 @@ async def parse_blackbox(file: UploadFile = File(...)):
 
 @app.get("/api/blackbox/logs")
 async def list_blackbox_logs():
-    """List available logs on FC."""
-    return {
-        "logs": [
-            {"id": "1", "name": "LOG00001.BBL", "size": 1024576, "date": datetime.now().isoformat()},
-            {"id": "2", "name": "LOG00002.BBL", "size": 2048576, "date": datetime.now().isoformat()},
-            {"id": "3", "name": "LOG00003.BBL", "size": 1534576, "date": datetime.now().isoformat()}
-        ]
-    }
+    """List available blackbox logs on FC."""
+    conn = get_serial_connection()
+    if not (conn and conn.serial and conn.serial.is_open):
+        return {"logs": [], "connected": False, "message": "Connect to FC to list logs"}
+    # If connected but can't get real logs yet, return empty with connected=True
+    return {"logs": [], "connected": True, "message": "Log listing requires dataflash/SD support"}
 
 
 @app.get("/api/blackbox/download/{log_id}")
@@ -603,14 +610,49 @@ async def download_blackbox_log(log_id: str):
 
 @app.get("/api/firmware/version")
 async def get_firmware_version():
-    """Get current Betaflight version from FC."""
-    return FirmwareVersion(major=4, minor=4, patch=0, versionString="Betaflight 4.4.0", buildDate="Jan 15 2024")
+    """Get current Betaflight version from FC, or return cached/default."""
+    conn = get_serial_connection()
+    if conn and conn.serial and conn.serial.is_open:
+        try:
+            # Try to get version from MSP status
+            if hasattr(msp, 'current_firmware') and msp.current_firmware:
+                fw = msp.current_firmware
+                return FirmwareVersion(
+                    major=fw.get('major', 4),
+                    minor=fw.get('minor', 4),
+                    patch=fw.get('patch', 0),
+                    versionString=fw.get('versionString', f"Betaflight {fw.get('major',4)}.{fw.get('minor',4)}.{fw.get('patch',0)}"),
+                    buildDate=fw.get('buildDate')
+                )
+        except Exception:
+            pass
+    # Return default when not connected
+    return FirmwareVersion(major=4, minor=4, patch=0, versionString="Betaflight 4.4.0 (not connected)", buildDate=None)
 
 
 @app.get("/api/firmware/target")
 async def get_firmware_target():
-    """Get FC target/board info."""
-    return BoardInfo(identifier="S411", targetName="MATEKF411", boardName="MATEKF411 (Rev 1)", manufacturerId="MTKS")
+    """Get FC target/board info from FC, or return cached/default."""
+    conn = get_serial_connection()
+    if conn and conn.serial and conn.serial.is_open:
+        try:
+            if hasattr(msp, 'current_board_info') and msp.current_board_info:
+                bi = msp.current_board_info
+                return BoardInfo(
+                    identifier=bi.get('identifier', 'S411'),
+                    targetName=bi.get('targetName', 'MATEKF411'),
+                    boardName=bi.get('boardName', 'MATEKF411 (Rev 1)'),
+                    manufacturerId=bi.get('manufacturerId', 'MTKS')
+                )
+        except Exception:
+            pass
+    # Return default when not connected
+    return BoardInfo(
+        identifier="S411",
+        targetName="MATEKF411 (not connected)",
+        boardName="MATEKF411 (Rev 1) (not connected)",
+        manufacturerId="MTKS"
+    )
 
 
 @app.get("/api/firmware/latest")
@@ -628,7 +670,14 @@ async def get_latest_firmware(current: str = "4.4.0", target: str = "MATEKF411")
             latest_tag = release_data['tag_name'].replace('v', '')
             latest_parts = [int(x) for x in latest_tag.split('.')]
             
-            update_available = any(latest_parts[i] > current_parts[i] for i in range(min(len(current_parts), len(latest_parts))))
+            def version_is_newer(latest: list, current: list) -> bool:
+                for i in range(max(len(latest), len(current))):
+                    l = latest[i] if i < len(latest) else 0
+                    c = current[i] if i < len(current) else 0
+                    if l > c: return True
+                    if l < c: return False
+                return False
+            update_available = version_is_newer(latest_parts, current_parts)
             target_url = next((a['browser_download_url'] for a in release_data.get('assets', [])
                               if target in a['name'] and a['name'].endswith('.hex')), None)
             
@@ -646,7 +695,9 @@ async def get_latest_firmware(current: str = "4.4.0", target: str = "MATEKF411")
 @app.get("/api/config/export")
 async def export_config():
     """Export full CLI dump as text file."""
-    mock_dump = """# Betaflight / MATEKF411 (MTKS) 4.4.0 Jan 15 2024
+    conn = get_serial_connection()
+    connection_note = "# NOTE: FC not connected - showing example config only\n" if not (conn and conn.serial and conn.serial.is_open) else ""
+    mock_dump = connection_note + """# Betaflight / MATEKF411 (MTKS) 4.4.0 Jan 15 2024
 # name
 name MyDrone
 # resources
@@ -722,7 +773,13 @@ async def restore_config(data: Dict[str, Any]):
         raise HTTPException(status_code=400, detail="No settings provided")
     
     if apply:
-        return {"success": True, "message": f"Settings applied ({len(settings)} settings)", "appliedCount": len(settings)}
+        conn = get_serial_connection()
+        if conn and conn.serial and conn.serial.is_open:
+            # Real application would go here via MSP CLI commands
+            actually_applied = False  # Not yet implemented via MSP
+            return {"success": True, "message": f"Settings preview only - MSP CLI restore not yet implemented ({len(settings)} settings)", "appliedCount": 0, "simulated": True}
+        else:
+            return {"success": False, "message": "Not connected to FC. Connect first to restore settings.", "appliedCount": 0}
     else:
         return {"success": True, "message": "Settings preview ready", "settingsCount": len(settings), "settings": settings}
 
@@ -775,10 +832,8 @@ async def security_headers(request: Request, call_next):
     
     # Security headers
     response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
     response.headers["X-XSS-Protection"] = "1; mode=block"
-    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-    response.headers["Content-Security-Policy"] = "default-src 'self'"
     
     return response
 

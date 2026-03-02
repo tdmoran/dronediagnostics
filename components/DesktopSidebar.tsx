@@ -12,7 +12,6 @@ import {
   FileText,
   Cpu,
   Settings,
-  Cog,
   Wifi,
 } from "lucide-react"
 import { useTelemetry } from "@/components/TelemetryProvider"
@@ -34,7 +33,8 @@ const navGroups: NavGroup[] = [
   {
     section: "Monitoring",
     items: [
-      { label: "Dashboard", href: "/", icon: <LayoutDashboard className="w-5 h-5" /> },
+      { label: "Overview", href: "/", icon: <LayoutDashboard className="w-5 h-5" /> },
+      { label: "Dashboard", href: "/dashboard", icon: <Cpu className="w-5 h-5" /> },
       { label: "GPS", href: "/gps", icon: <MapPin className="w-5 h-5" /> },
       { label: "Telemetry", href: "/telemetry", icon: <Activity className="w-5 h-5" /> },
       { label: "Battery", href: "/battery", icon: <Battery className="w-5 h-5" /> },
@@ -71,7 +71,7 @@ export function DesktopSidebar() {
       {/* Logo */}
       <div className="px-6 py-5">
         <h1 className="text-xl font-bold flex items-center gap-2 text-[#f2f2f2]">
-          <Cog className="w-6 h-6 text-[#ffbb00]" />
+          <Cpu className="w-6 h-6 text-[#ffbb00]" />
           DroneDiag
         </h1>
       </div>

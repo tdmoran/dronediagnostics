@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -111,12 +112,43 @@ function HardwareStatusSkeleton() {
   );
 }
 
+// Probability percentage for likelihood labels
+function getLikelihoodPct(likelihood: string): number {
+  switch (likelihood) {
+    case "high": return 85;
+    case "medium": return 60;
+    case "low": return 30;
+    default: return 20;
+  }
+}
+
+function getLikelihoodColor(likelihood: string): string {
+  switch (likelihood) {
+    case "high": return "#e2123f";
+    case "medium": return "#ff9900";
+    case "low": return "#8c8c8c";
+    default: return "#666";
+  }
+}
+
+// Left-border color for hardware check cards
+function getCheckBorderColor(status: string): string {
+  switch (status) {
+    case "working": return "#96e212";
+    case "warning": return "#ff9900";
+    case "failed": return "#e2123f";
+    default: return "#444";
+  }
+}
+
 export default function DiagnosePage() {
   const [selectedProblem, setSelectedProblem] = useState("");
   const [diagnosis, setDiagnosis] = useState<any>(null);
   const [hardwareReport, setHardwareReport] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [hardwareLoading, setHardwareLoading] = useState(true);
+  // Track which quick-fix action is currently running (by action key)
+  const [runningFix, setRunningFix] = useState<string | null>(null);
   const [fixDialog, setFixDialog] = useState({
     open: false,
     title: "",
@@ -168,6 +200,7 @@ export default function DiagnosePage() {
   }
 
   async function executeQuickFix(action: string, title: string) {
+    setRunningFix(action);
     setFixDialog({ open: true, title: `${title}...`, message: "Please wait..." });
 
     if (action === "recalibrate_gyro") {
@@ -194,6 +227,8 @@ export default function DiagnosePage() {
       }
     } catch (error) {
       setFixDialog({ open: true, title: "Error", message: "Network error" });
+    } finally {
+      setRunningFix(null);
     }
   }
 
@@ -236,21 +271,34 @@ export default function DiagnosePage() {
         <div className="bg-[#1f1f1f] rounded-[4px] border border-[#333] p-5 lg:p-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
             <div className="flex items-center gap-3">
-              <Activity className="h-6 w-6 text-[#ffbb00]" />
+              {/* Pulsing ring while scanning (hardwareLoading) — shows static after loaded */}
+              <div className="relative flex items-center justify-center">
+                <Activity className="h-6 w-6 text-[#ffbb00] relative z-10" />
+              </div>
               <div>
                 <h3 className="font-semibold text-white">Health Score</h3>
                 <p className="text-sm text-[#8c8c8c] capitalize">{healthStatus.status}</p>
               </div>
             </div>
             <div className="text-left sm:text-right">
-              <span className="text-3xl font-bold text-white">{healthStatus.score}</span>
+              <motion.span
+                key={healthStatus.score}
+                initial={{ opacity: 0, scale: 0.7 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className="text-3xl font-bold text-white inline-block"
+              >
+                {healthStatus.score}
+              </motion.span>
               <span className="text-gray-400">/100</span>
             </div>
           </div>
           <div className="h-3 bg-[#242424] rounded-full overflow-hidden">
-            <div
-              className={`h-full ${healthStatus.color} transition-all duration-500`}
-              style={{ width: `${healthStatus.score}%` }}
+            <motion.div
+              className={`h-full ${healthStatus.color}`}
+              initial={{ width: 0 }}
+              animate={{ width: `${healthStatus.score}%` }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
             />
           </div>
           <div className="flex justify-between mt-2 text-xs lg:text-sm text-gray-500">
@@ -334,7 +382,11 @@ export default function DiagnosePage() {
                 {hardwareReport.checks.map((check: any) => (
                   <div
                     key={check.name}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between p-3 lg:p-4 bg-[#242424]/50 border border-[#333] rounded-lg hover:bg-[#242424] transition-colors gap-3"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between p-3 lg:p-4 bg-[#242424]/50 border border-[#333] rounded-lg hover:bg-[#242424] transition-colors gap-3 overflow-hidden"
+                    style={{
+                      borderLeftColor: getCheckBorderColor(check.status),
+                      borderLeftWidth: '3px',
+                    }}
                   >
                     <div className="flex items-start gap-3">
                       {getStatusIcon(check.status)}
@@ -354,7 +406,7 @@ export default function DiagnosePage() {
                     </div>
                     <div className="flex items-center gap-3 ml-8 sm:ml-0">
                       {check.value !== undefined && (
-                        <span className="text-sm font-medium text-white">
+                        <span className="text-sm font-medium text-white font-mono">
                           {check.value} {check.unit}
                         </span>
                       )}
@@ -382,30 +434,30 @@ export default function DiagnosePage() {
           Common troubleshooting actions
         </p>
         <div className="flex flex-wrap gap-3">
-          <Button
-            onClick={() => executeQuickFix("recalibrate_gyro", "Recalibrating Gyro")}
-            variant="outline"
-            className="min-h-[44px]"
-          >
-            <RotateCcw className="h-4 w-4 mr-2" />
-            Recalibrate Gyro
-          </Button>
-          <Button
-            onClick={() => executeQuickFix("reset_defaults", "Resetting to Defaults")}
-            variant="outline"
-            className="min-h-[44px]"
-          >
-            <Cog className="h-4 w-4 mr-2" />
-            Reset to Defaults
-          </Button>
-          <Button
-            onClick={() => executeQuickFix("motor_test", "Running Motor Test")}
-            variant="outline"
-            className="min-h-[44px]"
-          >
-            <Play className="h-4 w-4 mr-2" />
-            Run Motor Test
-          </Button>
+          {[
+            { action: "recalibrate_gyro", label: "Recalibrate Gyro", title: "Recalibrating Gyro", Icon: RotateCcw },
+            { action: "reset_defaults", label: "Reset to Defaults", title: "Resetting to Defaults", Icon: Cog },
+            { action: "motor_test", label: "Run Motor Test", title: "Running Motor Test", Icon: Play },
+          ].map(({ action, label, title, Icon }) => {
+            const isRunning = runningFix === action;
+            const isAnyRunning = runningFix !== null;
+            return (
+              <Button
+                key={action}
+                onClick={() => executeQuickFix(action, title)}
+                variant="outline"
+                disabled={isAnyRunning}
+                className="min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isRunning ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Icon className="h-4 w-4 mr-2" />
+                )}
+                {isRunning ? "Running..." : label}
+              </Button>
+            );
+          })}
         </div>
       </div>
 
@@ -491,62 +543,90 @@ export default function DiagnosePage() {
                 Probable Causes (Ranked by Likelihood)
               </h3>
               <div className="space-y-4">
-                {diagnosis.causes.map((cause: any, index: number) => (
-                  <div
-                    key={cause.id}
-                    className="bg-[#242424] border-l-4 border-l-[#ffbb00] rounded-lg p-4 lg:p-5"
-                  >
-                    <div className="flex items-start justify-between mb-3 gap-3">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge
-                          variant={
-                            cause.likelihood === "high"
-                              ? "destructive"
-                              : cause.likelihood === "medium"
-                              ? "default"
-                              : "secondary"
-                          }
-                        >
-                          #{index + 1} {cause.likelihood.toUpperCase()}
-                        </Badge>
-                        <h4 className="font-semibold text-lg text-white">{cause.title}</h4>
-                      </div>
-                    </div>
-
-                    <p className="text-[#8c8c8c] mb-4 text-sm lg:text-base">
-                      {cause.description}
-                    </p>
-
-                    <div className="space-y-3">
-                      <div>
-                        <span className="font-medium text-sm text-white">
-                          Why this happens:
-                        </span>
-                        <p className="text-sm text-gray-400 mt-1">{cause.why}</p>
+                {diagnosis.causes.map((cause: any, index: number) => {
+                  const pct = getLikelihoodPct(cause.likelihood);
+                  const color = getLikelihoodColor(cause.likelihood);
+                  return (
+                    <motion.div
+                      key={cause.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.07 }}
+                      className="bg-[#242424] rounded-lg p-4 lg:p-5 border border-[#333]"
+                      style={{
+                        borderLeftColor: color,
+                        borderLeftWidth: '3px',
+                      }}
+                    >
+                      <div className="flex items-start justify-between mb-3 gap-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge
+                            variant={
+                              cause.likelihood === "high"
+                                ? "destructive"
+                                : cause.likelihood === "medium"
+                                ? "default"
+                                : "secondary"
+                            }
+                          >
+                            #{index + 1} {cause.likelihood.toUpperCase()}
+                          </Badge>
+                          <h4 className="font-semibold text-lg text-white">{cause.title}</h4>
+                        </div>
                       </div>
 
-                      <div>
-                        <span className="font-medium text-sm text-white">How to fix:</span>
-                        <ol className="list-decimal list-inside text-sm text-gray-400 mt-1">
-                          {cause.fix.map((step: string, i: number) => (
-                            <li key={i}>{step}</li>
-                          ))}
-                        </ol>
+                      {/* Probability bar */}
+                      <div className="mb-4">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs text-[#8c8c8c]">Probability</span>
+                          <span className="text-xs font-mono font-bold" style={{ color }}>{pct}%</span>
+                        </div>
+                        <div className="h-1.5 bg-[#1a1a1a] rounded-full overflow-hidden">
+                          <motion.div
+                            className="h-full rounded-full"
+                            style={{ backgroundColor: color }}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${pct}%` }}
+                            transition={{ duration: 0.6, ease: "easeOut", delay: index * 0.07 + 0.2 }}
+                          />
+                        </div>
                       </div>
 
-                      {cause.wikiLink && (
-                        <a
-                          href={cause.wikiLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center text-sm text-[#ffbb00] hover:text-[#e6a800] hover:underline"
-                        >
-                          View Betaflight Wiki →
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                      <p className="text-[#8c8c8c] mb-4 text-sm lg:text-base">
+                        {cause.description}
+                      </p>
+
+                      <div className="space-y-3">
+                        <div>
+                          <span className="font-medium text-sm text-white">
+                            Why this happens:
+                          </span>
+                          <p className="text-sm text-gray-400 mt-1">{cause.why}</p>
+                        </div>
+
+                        <div>
+                          <span className="font-medium text-sm text-white">How to fix:</span>
+                          <ol className="list-decimal list-inside text-sm text-gray-400 mt-1">
+                            {cause.fix.map((step: string, i: number) => (
+                              <li key={i}>{step}</li>
+                            ))}
+                          </ol>
+                        </div>
+
+                        {cause.wikiLink && (
+                          <a
+                            href={cause.wikiLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center text-sm text-[#ffbb00] hover:text-[#e6a800] hover:underline"
+                          >
+                            View Betaflight Wiki →
+                          </a>
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                })}
               </div>
             </div>
           </div>

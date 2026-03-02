@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   LineChart,
   Line,
@@ -11,6 +12,19 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import {
+  Upload,
+  FileWarning,
+  AlertTriangle,
+  Clock,
+  Gauge,
+  Mountain,
+  RotateCcw,
+  Zap,
+  Battery,
+  TrendingUp,
+  FileText,
+} from "lucide-react";
 import { BlackboxLog } from "../../types/blackbox";
 import { SkeletonChart, SkeletonStatCard, SkeletonCard } from "@/components/ui/skeleton";
 import { useConnectionToasts } from "@/hooks/use-toast";
@@ -122,12 +136,16 @@ export default function BlackboxPage() {
 
       {/* File Upload */}
       <div className="bg-[#1f1f1f] rounded-[4px] border border-[#333] p-4 lg:p-6">
-        <h2 className="text-lg font-semibold text-white mb-4">Upload Log File</h2>
+        <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <Upload className="h-4 w-4 text-[#ffbb00]" />
+          Upload Log File
+        </h2>
+
         <div
-          className={`border-2 border-dashed rounded-[4px] p-6 lg:p-12 text-center transition-colors ${
+          className={`relative border-2 border-dashed rounded-[4px] p-6 lg:p-14 text-center transition-all duration-200 cursor-pointer ${
             isDragging
-              ? "border-[#ffbb00] bg-[rgba(255,187,0,0.1)]"
-              : "border-[#333] hover:border-[#8c8c8c]"
+              ? "border-[#ffbb00] bg-[rgba(255,187,0,0.07)] shadow-[0_0_20px_rgba(255,187,0,0.15)]"
+              : "border-[#333] hover:border-[#555] hover:bg-[#242424]/40"
           }`}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
@@ -141,13 +159,37 @@ export default function BlackboxPage() {
             id="file-input"
           />
           <label htmlFor="file-input" className="cursor-pointer block">
-            <div className="text-4xl lg:text-5xl mb-4">📁</div>
-            <p className="text-base lg:text-lg font-medium text-white mb-2">
-              Drop your .bbl file here or click to browse
-            </p>
-            <p className="text-sm text-gray-500">
-              Supports Betaflight blackbox log files (.bbl)
-            </p>
+            <div className="flex flex-col items-center gap-3">
+              <div
+                className={`p-4 rounded-full border-2 transition-colors ${
+                  isDragging
+                    ? "border-[#ffbb00] bg-[rgba(255,187,0,0.15)] text-[#ffbb00]"
+                    : "border-[#444] bg-[#242424] text-[#8c8c8c]"
+                }`}
+              >
+                <FileText className="h-8 w-8" />
+              </div>
+              {logData ? (
+                <div>
+                  <p className="text-base font-medium text-[#f2f2f2] mb-1">
+                    Drop a new .bbl file to replace
+                  </p>
+                  <p className="text-xs text-[#8c8c8c]">or click to browse</p>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-base lg:text-lg font-medium text-[#f2f2f2] mb-1">
+                    {isDragging ? "Release to upload" : "Drop your .bbl file here"}
+                  </p>
+                  <p className="text-sm text-[#8c8c8c]">
+                    or <span className="text-[#ffbb00] underline underline-offset-2">click to browse</span>
+                  </p>
+                  <p className="text-xs text-[#666] mt-2">
+                    Supports Betaflight blackbox log files (.bbl)
+                  </p>
+                </div>
+              )}
+            </div>
           </label>
         </div>
 
@@ -157,9 +199,28 @@ export default function BlackboxPage() {
           </div>
         )}
 
-        {error && (
-          <div className="bg-red-950/30 border border-red-800 rounded-lg p-3 mt-4 text-red-400 text-sm">
-            {error}
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              className="flex items-start gap-3 bg-[#e2123f]/10 border border-[#e2123f]/50 rounded-lg p-3 mt-4 text-[#e2123f] text-sm"
+            >
+              <FileWarning className="h-4 w-4 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold">Failed to parse log file</p>
+                <p className="text-xs text-[#e2123f]/80 mt-0.5">{error}</p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* No file selected empty state hint */}
+        {!logData && !loading && !error && (
+          <div className="flex items-center gap-2 mt-4 text-xs text-[#666]">
+            <AlertTriangle className="h-3 w-3 shrink-0" />
+            No file selected — upload a .bbl file to begin analysis
           </div>
         )}
       </div>
@@ -443,58 +504,85 @@ export default function BlackboxPage() {
             {/* Statistics Tab */}
             {activeTab === "stats" && (
               <div>
-                <h3 className="text-base lg:text-lg font-medium text-white mb-4">
+                <h3 className="text-base lg:text-lg font-medium text-white mb-4 flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-[#ffbb00]" />
                   Flight Statistics
                 </h3>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="bg-[#242424] rounded-lg p-4 border border-[#333]">
-                    <div className="text-2xl font-bold text-[#ffbb00]">
-                      {logData.statistics.duration.toFixed(1)}s
-                    </div>
-                    <div className="text-sm text-gray-500">Duration</div>
-                  </div>
-                  <div className="bg-[#242424] rounded-lg p-4 border border-[#333]">
-                    <div className="text-2xl font-bold text-[#ffbb00]">
-                      {(logData.statistics.maxSpeed * 3.6).toFixed(1)} km/h
-                    </div>
-                    <div className="text-sm text-gray-500">Max Speed</div>
-                  </div>
-                  <div className="bg-[#242424] rounded-lg p-4 border border-[#333]">
-                    <div className="text-2xl font-bold text-[#ffbb00]">
-                      {logData.statistics.maxAltitude.toFixed(1)}m
-                    </div>
-                    <div className="text-sm text-gray-500">Max Altitude</div>
-                  </div>
-                  <div className="bg-[#242424] rounded-lg p-4 border border-[#333]">
-                    <div className="text-2xl font-bold text-[#ffbb00]">
-                      {(logData.statistics.maxGyroRate / 1000).toFixed(1)}°/s
-                    </div>
-                    <div className="text-sm text-gray-500">Max Gyro Rate</div>
-                  </div>
-                  <div className="bg-[#242424] rounded-lg p-4 border border-[#333]">
-                    <div className="text-2xl font-bold text-[#ffbb00]">
-                      {(logData.statistics.maxAccel / 1000).toFixed(2)}g
-                    </div>
-                    <div className="text-sm text-gray-500">Max Acceleration</div>
-                  </div>
-                  <div className="bg-[#242424] rounded-lg p-4 border border-[#333]">
-                    <div className="text-2xl font-bold text-[#ffbb00]">
-                      {logData.statistics.avgVoltage.toFixed(2)}V
-                    </div>
-                    <div className="text-sm text-gray-500">Avg Voltage</div>
-                  </div>
-                  <div className="bg-[#242424] rounded-lg p-4 border border-[#333]">
-                    <div className="text-2xl font-bold text-[#ffbb00]">
-                      {logData.statistics.avgCurrent.toFixed(1)}A
-                    </div>
-                    <div className="text-sm text-gray-500">Avg Current</div>
-                  </div>
-                  <div className="bg-[#242424] rounded-lg p-4 border border-[#333]">
-                    <div className="text-2xl font-bold text-[#ffbb00]">
-                      {logData.statistics.maxCurrent.toFixed(1)}A
-                    </div>
-                    <div className="text-sm text-gray-500">Max Current</div>
-                  </div>
+                  {[
+                    {
+                      Icon: Clock,
+                      color: "#ffbb00",
+                      value: `${logData.statistics.duration.toFixed(1)}s`,
+                      label: "Duration",
+                    },
+                    {
+                      Icon: Gauge,
+                      color: "#96e212",
+                      value: `${(logData.statistics.maxSpeed * 3.6).toFixed(1)} km/h`,
+                      label: "Max Speed",
+                    },
+                    {
+                      Icon: Mountain,
+                      color: "#3b82f6",
+                      value: `${logData.statistics.maxAltitude.toFixed(1)}m`,
+                      label: "Max Altitude",
+                    },
+                    {
+                      Icon: RotateCcw,
+                      color: "#ff9900",
+                      value: `${(logData.statistics.maxGyroRate / 1000).toFixed(1)}°/s`,
+                      label: "Max Gyro Rate",
+                    },
+                    {
+                      Icon: Zap,
+                      color: "#ff9900",
+                      value: `${(logData.statistics.maxAccel / 1000).toFixed(2)}g`,
+                      label: "Max Acceleration",
+                    },
+                    {
+                      Icon: Battery,
+                      color: "#96e212",
+                      value: `${logData.statistics.avgVoltage.toFixed(2)}V`,
+                      label: "Avg Voltage",
+                    },
+                    {
+                      Icon: Zap,
+                      color: "#ffbb00",
+                      value: `${logData.statistics.avgCurrent.toFixed(1)}A`,
+                      label: "Avg Current",
+                    },
+                    {
+                      Icon: Zap,
+                      color: "#e2123f",
+                      value: `${logData.statistics.maxCurrent.toFixed(1)}A`,
+                      label: "Max Current",
+                    },
+                  ].map(({ Icon, color, value, label }, i) => (
+                    <motion.div
+                      key={label}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.04 }}
+                      className="bg-[#242424] rounded-lg p-4 border border-[#333] hover:border-[#444] transition-colors"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <div
+                          className="p-1.5 rounded"
+                          style={{ backgroundColor: `${color}18` }}
+                        >
+                          <Icon className="h-3.5 w-3.5" style={{ color }} />
+                        </div>
+                        <span className="text-xs text-[#8c8c8c]">{label}</span>
+                      </div>
+                      <div
+                        className="text-3xl font-bold font-mono leading-none"
+                        style={{ color }}
+                      >
+                        {value}
+                      </div>
+                    </motion.div>
+                  ))}
                 </div>
               </div>
             )}
