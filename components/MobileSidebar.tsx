@@ -33,9 +33,14 @@ interface SidebarItem {
 
 const sidebarItems: SidebarItem[] = [
   {
-    label: "Dashboard",
+    label: "Overview",
     href: "/",
     icon: <LayoutDashboard className="w-5 h-5" />,
+  },
+  {
+    label: "Dashboard",
+    href: "/dashboard",
+    icon: <Cpu className="w-5 h-5" />,
   },
   {
     label: "Diagnose",
