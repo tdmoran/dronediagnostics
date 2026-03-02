@@ -180,24 +180,29 @@ function checkMotors(telem: Record<string, any> | null): HardwareCheck {
     return { name: 'Motors', status: 'not_detected', message: 'No motor data received' };
   }
 
-  const activeMotors = motors.filter((m: number) => m > 0).length;
-  const idleMotors = motors.filter((m: number) => m >= 1000 && m <= 1100).length;
+  // Betaflight reports motors as 1000 when disarmed (idle/min throttle) — this is correct
+  const reportingMotors = motors.filter((m: number) => m >= 1000).length;
+  const activeMotors = motors.filter((m: number) => m > 1050).length; // above idle
+  const zeroMotors = motors.filter((m: number) => m === 0).length;
 
-  if (activeMotors === 0) {
+  if (reportingMotors === 0) {
     return {
       name: 'Motors',
       status: 'warning',
-      message: 'Motors at zero — disarmed or ESC protocol mismatch',
+      message: 'All motors at zero — ESC protocol mismatch or not powered',
       details: `Values: ${motors.slice(0, 4).join(', ')}`,
     };
   }
 
+  const isArmed = (telem?.status?.flight_mode ?? 0) & 1;
+  const label = isArmed ? `${activeMotors} motors throttled` : `${reportingMotors} motors idle (disarmed)`;
+
   return {
     name: 'Motors',
     status: 'working',
-    message: `${activeMotors} motors reporting`,
+    message: label,
     details: `Values: ${motors.slice(0, 4).join(', ')}`,
-    value: activeMotors,
+    value: reportingMotors,
     unit: 'motors',
   };
 }
@@ -214,17 +219,23 @@ function checkBattery(telem: Record<string, any> | null): HardwareCheck {
 
   const voltage: number = battery.voltage;
   if (voltage < 1) {
-    return { name: 'Battery', status: 'not_detected', message: 'No battery detected (0V)', details: 'Check voltage sense wiring' };
+    // 0V means no LiPo attached — FC is running on USB power only. This is normal during bench config.
+    return {
+      name: 'Battery',
+      status: 'warning',
+      message: 'USB power only — no LiPo connected',
+      details: 'Connect a battery to see voltage, current, and mAh readings',
+    };
   }
 
-  // Estimate cell count (most common: 1S=3-4.2V, 2S=6-8.4V, 3S=9-12.6V, 4S=12-16.8V)
-  const cellCount = voltage > 12 ? 4 : voltage > 9 ? 3 : voltage > 6 ? 2 : 1;
+  // Estimate cell count
+  const cellCount = voltage > 16 ? 5 : voltage > 12 ? 4 : voltage > 9 ? 3 : voltage > 6 ? 2 : 1;
   const cellV = voltage / cellCount;
 
   let status: HardwareStatus = 'working';
-  let message = `Battery healthy (${cellCount}S)`;
+  let message = `Battery healthy (${cellCount}S, ${voltage.toFixed(1)}V)`;
 
-  if (cellV < 3.3) {
+  if (cellV < 3.5) {
     status = 'warning';
     message = `Low battery — ${cellV.toFixed(2)}V/cell`;
   }
@@ -237,7 +248,7 @@ function checkBattery(telem: Record<string, any> | null): HardwareCheck {
     name: 'Battery',
     status,
     message,
-    details: `${cellCount}S estimated, ${cellV.toFixed(2)}V/cell`,
+    details: `${cellCount}S estimated, ${cellV.toFixed(2)}V/cell${battery.amperage > 0 ? `, ${battery.amperage.toFixed(1)}A` : ''}`,
     value: voltage.toFixed(1),
     unit: 'V',
   };
@@ -250,14 +261,21 @@ function checkGPS(telem: Record<string, any> | null): HardwareCheck {
 
   const sensors: number = telem?.status?.sensors ?? 0;
   const gps = telem?.gps;
+  const gpsInSensorMask = !!(sensors & SENSOR_GPS);
+  const gpsHasData = gps && (gps.lat !== 0 || gps.lon !== 0 || gps.num_satellites > 0);
+  const modulePresent = gpsInSensorMask || gpsHasData;
 
-  // Check sensors bitmask
-  if (!(sensors & SENSOR_GPS) && !gps) {
-    return { name: 'GPS', status: 'not_detected', message: 'GPS not enabled in FC', details: 'Enable GPS in Ports + Configuration tabs' };
+  if (!modulePresent) {
+    return {
+      name: 'GPS',
+      status: 'not_detected',
+      message: 'GPS not enabled in FC',
+      details: 'Enable GPS in Ports + Configuration tabs, or not present on this FC',
+    };
   }
 
   if (!gps) {
-    return { name: 'GPS', status: 'warning', message: 'GPS enabled but no data yet', details: 'Waiting for GPS module to respond' };
+    return { name: 'GPS', status: 'warning', message: 'GPS enabled but no MSP data yet', details: 'Module may still be initialising' };
   }
 
   const sats = gps.num_satellites;
@@ -266,9 +284,9 @@ function checkGPS(telem: Record<string, any> | null): HardwareCheck {
   if (fixType === 0) {
     return {
       name: 'GPS',
-      status: sats > 3 ? 'warning' : 'not_detected',
-      message: sats > 0 ? `Searching — ${sats} satellites` : 'No GPS fix (searching)',
-      details: 'Move outdoors with clear sky view',
+      status: 'warning',
+      message: sats > 0 ? `Acquiring fix — ${sats} satellite${sats === 1 ? '' : 's'} visible` : 'Module active, searching for satellites',
+      details: 'Move outdoors with clear sky view for a fix',
       value: sats,
       unit: 'sats',
     };
@@ -278,7 +296,7 @@ function checkGPS(telem: Record<string, any> | null): HardwareCheck {
     name: 'GPS',
     status: sats >= 6 ? 'working' : 'warning',
     message: fixType >= 2 ? `3D fix — ${sats} satellites` : `2D fix — ${sats} satellites`,
-    details: `Fix type ${fixType}, lat=${gps.lat.toFixed(6)}, lon=${gps.lon.toFixed(6)}`,
+    details: `lat=${gps.lat.toFixed(6)}, lon=${gps.lon.toFixed(6)}`,
     value: sats,
     unit: 'sats',
   };
@@ -294,27 +312,41 @@ function checkReceiver(telem: Record<string, any> | null): HardwareCheck {
     return { name: 'Receiver', status: 'failed', message: 'No RC channel data', details: 'Check receiver binding and UART assignment' };
   }
 
-  const activeChannels = rc.filter((v: number) => v >= 900 && v <= 2100).length;
-  const rssi = telem?.battery?.rssi;
+  const validChannels = rc.filter((v: number) => v >= 900 && v <= 2100).length;
 
-  if (activeChannels < 4) {
+  if (validChannels < 4) {
     return {
       name: 'Receiver',
       status: 'warning',
-      message: `Only ${activeChannels} valid channels (need ≥4)`,
-      details: rc.slice(0, 8).join(', '),
+      message: `Only ${validChannels} valid channels (need ≥4)`,
+      details: `Ch1-8: ${rc.slice(0, 8).join(', ')}`,
     };
   }
 
-  const rssiPct = rssi != null ? (rssi > 100 ? Math.round(rssi / 10.23) : rssi) : null;
-  const rssiStatus: HardwareStatus = rssiPct == null ? 'working' : rssiPct > 60 ? 'working' : rssiPct > 30 ? 'warning' : 'failed';
+  const rawRssi: number = telem?.battery?.rssi ?? 0;
+  // RSSI=0 means RSSI injection is not configured in Betaflight — don't penalise this.
+  // Only use RSSI for status when it's actually reporting a non-zero value.
+  if (rawRssi > 0) {
+    const rssiPct = rawRssi > 100 ? Math.round(rawRssi / 10.23) : rawRssi;
+    const rssiStatus: HardwareStatus = rssiPct > 60 ? 'working' : rssiPct > 30 ? 'warning' : 'failed';
+    return {
+      name: 'Receiver',
+      status: rssiStatus,
+      message: rssiStatus === 'working'
+        ? `${validChannels} channels, RSSI ${rssiPct}%`
+        : `Weak signal — RSSI ${rssiPct}%`,
+      details: `Ch1-4: ${rc.slice(0, 4).join(', ')} | RSSI: ${rssiPct}%`,
+      value: validChannels,
+      unit: 'channels',
+    };
+  }
 
   return {
     name: 'Receiver',
-    status: rssiStatus,
-    message: rssiStatus === 'working' ? `${activeChannels} channels active` : `Weak signal — RSSI ${rssiPct}%`,
-    details: `Ch1-4: ${rc.slice(0, 4).join(', ')}${rssiPct != null ? ` | RSSI: ${rssiPct}%` : ''}`,
-    value: activeChannels,
+    status: 'working',
+    message: `${validChannels} channels active`,
+    details: `Ch1-4: ${rc.slice(0, 4).join(', ')} | RSSI not configured`,
+    value: validChannels,
     unit: 'channels',
   };
 }
@@ -780,6 +812,7 @@ function runQuickChecks(problem: ProblemType, report: HardwareReport): { passed:
     case 'battery_voltage_wrong': {
       const bat = get('Battery');
       if (bat?.status === 'working') passed.push('Battery voltage plausible');
+      else if (bat?.status === 'warning') passed.push(`Battery: ${bat.message}`);
       else failed.push(`Battery issue: ${bat?.message}`);
       break;
     }
