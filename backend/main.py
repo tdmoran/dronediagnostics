@@ -337,22 +337,33 @@ async def websocket_cli(websocket: WebSocket):
         return await asyncio.to_thread(conn.serial.read, n)
 
     async def read_until_prompt(timeout: float = 3.0) -> bytes:
-        """Accumulate bytes until Betaflight's '# ' prompt appears or timeout."""
+        """Accumulate bytes until Betaflight CLI prompt ('# ') appears or timeout.
+
+        Keeps reading even after receiving data because large responses (dump, diff all)
+        arrive in many chunks. Only stops when the prompt is detected or no data
+        arrives for `idle_timeout` seconds after the last chunk.
+        """
         buf = b''
         deadline = asyncio.get_event_loop().time() + timeout
+        idle_timeout = 0.15          # stop if nothing arrives for 150 ms after last chunk
+        last_data_time = asyncio.get_event_loop().time()
+
         while asyncio.get_event_loop().time() < deadline:
-            chunk = await serial_read(1024)
+            chunk = await serial_read(4096)
             if chunk:
                 buf += chunk
-                if buf.endswith(b'# ') or b'\n# ' in buf[-8:]:
+                last_data_time = asyncio.get_event_loop().time()
+                # Prompt detection: Betaflight ends responses with '\r\n# ' or '\n# '
+                if buf[-4:].endswith(b'# ') and b'\n' in buf[-6:]:
                     break
             else:
-                if buf:
-                    break  # Got some data, nothing more arriving
+                # No data — if we already have output and it's been quiet for a bit, stop
+                if buf and (asyncio.get_event_loop().time() - last_data_time) > idle_timeout:
+                    break
         return buf
 
     try:
-        # Enter CLI mode by sending '#' (Betaflight recognises this as CLI entry)
+        # Enter CLI mode
         await asyncio.to_thread(conn.serial.write, b'#\r\n')
         conn.serial.flush()
 
@@ -369,7 +380,9 @@ async def websocket_cli(websocket: WebSocket):
             await asyncio.to_thread(conn.serial.write, (cmd + '\r\n').encode())
             conn.serial.flush()
 
-            response = await read_until_prompt(timeout=5.0)
+            # dump / diff all can be hundreds of lines — allow up to 20 s
+            t = 20.0 if cmd.lower() in ('dump', 'diff all', 'diff') else 5.0
+            response = await read_until_prompt(timeout=t)
             await websocket.send_text(response.decode('utf-8', errors='replace'))
 
     except WebSocketDisconnect:

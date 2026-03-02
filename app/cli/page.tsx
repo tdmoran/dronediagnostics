@@ -72,11 +72,15 @@ export default function CLIPage() {
     }
   }, [lines]);
 
-  // Disconnect CLI if MSP connection drops
+  // Auto-connect / auto-disconnect CLI WebSocket when FC connection changes
   useEffect(() => {
-    if (!connected && cliConnected) {
+    if (connected && !wsRef.current) {
+      enterCliMode();
+    }
+    if (!connected && wsRef.current) {
       exitCliMode();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connected]);
 
   const appendLines = useCallback((newLines: TerminalLine[]) => {
@@ -288,43 +292,19 @@ export default function CLIPage() {
           </p>
         </div>
 
-        {/* Status / Enter-CLI banner */}
-        {!connected ? (
+        {/* Status banner */}
+        {cliConnected ? (
+          <div className="flex items-center gap-3 rounded border border-[#22c55e]/30 bg-[#22c55e]/10 px-4 py-2.5">
+            <span className="h-2 w-2 rounded-full bg-[#22c55e] animate-pulse shrink-0" />
+            <span className="text-sm font-mono text-[#22c55e]">Live — connected to FC</span>
+            <span className="ml-auto text-xs font-mono text-[#22c55e]/60">MSP telemetry paused while CLI is open</span>
+          </div>
+        ) : (
           <div className="flex items-start gap-3 rounded border border-[#ffbb00]/30 bg-[#ffbb00]/10 px-4 py-2.5">
             <span className="mt-1 h-2 w-2 rounded-full bg-[#ffbb00] shrink-0" />
             <span className="text-sm font-mono text-[#ffbb00]">
-              No FC connected — running in demo mode. Connect via the sidebar to use the live CLI.
+              {connected ? 'Connecting to CLI…' : 'No FC connected — demo mode. Connect via the sidebar for live CLI.'}
             </span>
-          </div>
-        ) : cliConnected ? (
-          <div className="flex items-center justify-between gap-3 rounded border border-[#22c55e]/30 bg-[#22c55e]/10 px-4 py-2.5">
-            <div className="flex items-center gap-3">
-              <span className="h-2 w-2 rounded-full bg-[#22c55e] animate-pulse shrink-0" />
-              <span className="text-sm font-mono text-[#22c55e]">
-                Live CLI active — MSP telemetry paused
-              </span>
-            </div>
-            <button
-              onClick={exitCliMode}
-              className="text-xs font-mono px-3 py-1 rounded bg-[#ef4444]/20 text-[#ef4444] border border-[#ef4444]/40 hover:bg-[#ef4444]/30 transition-colors"
-            >
-              Exit CLI
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center justify-between gap-3 rounded border border-[#333] bg-[#1f1f1f] px-4 py-2.5">
-            <div className="flex items-center gap-3">
-              <span className="h-2 w-2 rounded-full bg-[#8c8c8c] shrink-0" />
-              <span className="text-sm font-mono text-[#8c8c8c]">
-                FC connected via MSP — click Enter CLI to open a live terminal session
-              </span>
-            </div>
-            <button
-              onClick={enterCliMode}
-              className="text-xs font-mono px-3 py-1 rounded bg-[#ffbb00]/20 text-[#ffbb00] border border-[#ffbb00]/40 hover:bg-[#ffbb00]/30 transition-colors whitespace-nowrap"
-            >
-              Enter CLI
-            </button>
           </div>
         )}
 
@@ -412,8 +392,9 @@ export default function CLIPage() {
               <div className="h-3 w-3 rounded-full bg-[#ef4444]/60" />
               <div className="h-3 w-3 rounded-full bg-[#ffbb00]/60" />
               <div className="h-3 w-3 rounded-full bg-[#22c55e]/60" />
-              <span className="ml-2 text-xs font-mono text-[#8c8c8c]">
-                betaflight — cli {cliConnected ? '(live)' : '(demo)'}
+              <span className="ml-2 text-xs font-mono text-[#8c8c8c]">betaflight — cli</span>
+              <span className={`ml-2 text-[10px] font-mono px-1.5 py-0.5 rounded ${cliConnected ? 'bg-[#22c55e]/20 text-[#22c55e]' : 'bg-[#333] text-[#8c8c8c]'}`}>
+                {cliConnected ? 'LIVE' : 'DEMO'}
               </span>
             </div>
             <div className="flex items-center gap-2">
