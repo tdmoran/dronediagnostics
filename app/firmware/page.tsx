@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useTelemetry } from '@/components/TelemetryProvider';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   RefreshCw,
@@ -41,16 +42,26 @@ function FirmwareSkeleton() {
 }
 
 export default function FirmwarePage() {
+  const { connected } = useTelemetry();
   const [firmwareInfo, setFirmwareInfo] = useState<FirmwareInfo | null>(null);
   const [updateInfo, setUpdateInfo] = useState<FirmwareUpdateInfo | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notConnected, setNotConnected] = useState(false);
   const [target, setTarget] = useState('MATEKF411');
+  const prevConnected = useRef(false);
 
   useEffect(() => {
     fetchFirmwareInfo();
   }, []);
+
+  // Auto-refresh when FC connects
+  useEffect(() => {
+    if (connected && !prevConnected.current) {
+      fetchFirmwareInfo();
+    }
+    prevConnected.current = connected;
+  }, [connected]);
 
   const fetchFirmwareInfo = async () => {
     setLoading(true);
@@ -96,10 +107,14 @@ export default function FirmwarePage() {
   const checkForUpdates = async (currentVersion: string, targetName: string) => {
     try {
       const response = await fetch(
-        `${API_URL}/api/firmware/latest?current=${currentVersion}&target=${targetName}`
+        `${API_URL}/api/firmware/latest?current=${encodeURIComponent(currentVersion)}&target=${encodeURIComponent(targetName)}`
       );
+      if (!response.ok) return;
       const data = await response.json();
-      setUpdateInfo(data);
+      // Guard: only set if the response has the expected shape
+      if (data && data.current && data.latest !== undefined) {
+        setUpdateInfo(data);
+      }
     } catch (err) {
       console.error('Failed to check for updates:', err);
     }

@@ -418,7 +418,7 @@ export default function CLIPage() {
             </div>
           </div>
 
-          <div ref={scrollRef} className="h-[420px] overflow-y-auto bg-[#0a0a0a] p-4 font-mono text-sm leading-relaxed">
+          <div ref={scrollRef} onClick={() => inputRef.current?.focus()} className="h-[420px] overflow-y-auto bg-[#0a0a0a] p-4 font-mono text-sm leading-relaxed cursor-text">
             {lines.map((line, i) => (
               <div key={i} className={`whitespace-pre-wrap break-all ${getLineColor(line.type)}`}>
                 {line.type === 'input' ? (

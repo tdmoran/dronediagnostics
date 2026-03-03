@@ -455,6 +455,10 @@ async def connect_serial(request: ConnectRequest):
     conn = create_serial_connection(request.port, request.baud_rate)
 
     if conn.connect():
+        # ── One-time firmware / board queries before polling starts ────────────
+        import time as _t; _t.sleep(0.1)  # brief settle
+        await asyncio.get_event_loop().run_in_executor(None, _fetch_firmware_live, conn)
+
         # Add callback BEFORE starting polling so no data is missed
         def on_telemetry_data(data_type, data):
             if data_type == 'gps':
@@ -730,50 +734,130 @@ async def download_blackbox_log(log_id: str):
 
 # ============== FIRMWARE ENDPOINTS ==============
 
-@app.get("/api/firmware/version")
-async def get_firmware_version():
-    """Get current Betaflight version from FC, or return cached/default."""
-    conn = get_serial_connection()
-    if conn and conn.serial and conn.serial.is_open:
+def _fetch_firmware_live(conn) -> None:
+    """
+    Query MSP_FC_VARIANT / MSP_FC_VERSION / MSP_BOARD_INFO from the FC and
+    populate msp.current_firmware and msp.current_board_info.
+    Must be called with the polling loop paused (conn.running = False) or
+    during initial connect before polling starts.
+    """
+    import time as _time
+
+    # FC variant (e.g. "BTFL")
+    variant = "BTFL"
+    conn.send_msp_command(MSP_FC_VARIANT)
+    resp = conn.read_response(timeout=1.0)
+    if resp and resp[0] == MSP_FC_VARIANT and resp[1]:
         try:
-            # Try to get version from MSP status
-            if hasattr(msp, 'current_firmware') and msp.current_firmware:
-                fw = msp.current_firmware
-                return FirmwareVersion(
-                    major=fw.get('major', 4),
-                    minor=fw.get('minor', 4),
-                    patch=fw.get('patch', 0),
-                    versionString=fw.get('versionString', f"Betaflight {fw.get('major',4)}.{fw.get('minor',4)}.{fw.get('patch',0)}"),
-                    buildDate=fw.get('buildDate')
-                )
+            variant = resp[1].decode("ascii", errors="replace").rstrip("\x00").strip()
         except Exception:
             pass
-    # Return default when not connected
-    return FirmwareVersion(major=4, minor=4, patch=0, versionString="Betaflight 4.4.0 (not connected)", buildDate=None)
+
+    # FC version: 3 bytes [major, minor, patch]
+    conn.send_msp_command(MSP_FC_VERSION)
+    resp = conn.read_response(timeout=1.0)
+    if resp and resp[0] == MSP_FC_VERSION and len(resp[1]) >= 3:
+        major, minor, patch = resp[1][0], resp[1][1], resp[1][2]
+        msp.current_firmware = {
+            "major": major,
+            "minor": minor,
+            "patch": patch,
+            "versionString": f"{variant} {major}.{minor}.{patch}",
+        }
+
+    # Board info: 4-byte board ID, 2-byte hw rev, 2 misc bytes,
+    # then length-prefixed target name, board name, 4-byte mfr ID
+    conn.send_msp_command(MSP_BOARD_INFO)
+    resp = conn.read_response(timeout=1.0)
+    if resp and resp[0] == MSP_BOARD_INFO and len(resp[1]) >= 4:
+        data = resp[1]
+        board_id = data[:4].decode("ascii", errors="replace").rstrip("\x00").strip()
+        target_name = board_id
+        board_name = board_id
+        mfr_id = ""
+        try:
+            offset = 6  # skip board_id (4) + hw_rev (2)
+            if len(data) > offset + 2:
+                offset += 2  # skip type + targetCapabilities
+            if len(data) > offset:
+                tlen = data[offset]; offset += 1
+                target_name = data[offset:offset + tlen].decode("ascii", errors="replace")
+                offset += tlen
+            if len(data) > offset:
+                blen = data[offset]; offset += 1
+                board_name = data[offset:offset + blen].decode("ascii", errors="replace")
+                offset += blen
+            # Manufacturer name is also length-prefixed in BF 4.3+ (API >= 1.45)
+            if len(data) > offset:
+                mlen = data[offset]; offset += 1
+                mfr_id = data[offset:offset + mlen].decode("ascii", errors="replace").rstrip("\x00").strip()
+                offset += mlen
+        except Exception:
+            pass
+        msp.current_board_info = {
+            "identifier": board_id,
+            "targetName": target_name or board_id,
+            "boardName": board_name or board_id,
+            "manufacturerId": mfr_id,
+        }
+
+
+async def _ensure_firmware_cached():
+    """If firmware info isn't cached yet but FC is connected, pause polling and fetch it."""
+    conn = get_serial_connection()
+    if not conn or not conn.serial or not conn.serial.is_open:
+        return
+    if getattr(msp, 'current_firmware', None) and getattr(msp, 'current_board_info', None):
+        return  # already cached
+    was_running = conn.running
+    conn.running = False
+    await asyncio.sleep(0.1)
+    conn.serial.reset_input_buffer()
+    try:
+        await asyncio.get_event_loop().run_in_executor(None, _fetch_firmware_live, conn)
+    finally:
+        if was_running:
+            conn.running = True
+            asyncio.get_event_loop().run_in_executor(None, conn.start_polling_sync)
+
+
+@app.get("/api/firmware/version")
+async def get_firmware_version():
+    """Get current firmware version from FC (live query if not cached)."""
+    await _ensure_firmware_cached()
+    conn = get_serial_connection()
+    if conn and conn.serial and conn.serial.is_open:
+        fw = getattr(msp, 'current_firmware', None)
+        if fw:
+            return FirmwareVersion(
+                major=fw.get('major', 4),
+                minor=fw.get('minor', 0),
+                patch=fw.get('patch', 0),
+                versionString=fw.get('versionString', ''),
+                buildDate=fw.get('buildDate'),
+            )
+    return FirmwareVersion(major=4, minor=4, patch=0, versionString="not connected", buildDate=None)
 
 
 @app.get("/api/firmware/target")
 async def get_firmware_target():
-    """Get FC target/board info from FC, or return cached/default."""
+    """Get board/target info from FC (live query if not cached)."""
+    await _ensure_firmware_cached()
     conn = get_serial_connection()
     if conn and conn.serial and conn.serial.is_open:
-        try:
-            if hasattr(msp, 'current_board_info') and msp.current_board_info:
-                bi = msp.current_board_info
-                return BoardInfo(
-                    identifier=bi.get('identifier', 'S411'),
-                    targetName=bi.get('targetName', 'MATEKF411'),
-                    boardName=bi.get('boardName', 'MATEKF411 (Rev 1)'),
-                    manufacturerId=bi.get('manufacturerId', 'MTKS')
-                )
-        except Exception:
-            pass
-    # Return default when not connected
+        bi = getattr(msp, 'current_board_info', None)
+        if bi:
+            return BoardInfo(
+                identifier=bi.get('identifier', ''),
+                targetName=bi.get('targetName', ''),
+                boardName=bi.get('boardName', ''),
+                manufacturerId=bi.get('manufacturerId', ''),
+            )
     return BoardInfo(
-        identifier="S411",
-        targetName="MATEKF411 (not connected)",
-        boardName="MATEKF411 (Rev 1) (not connected)",
-        manufacturerId="MTKS"
+        identifier="",
+        targetName="not connected",
+        boardName="not connected",
+        manufacturerId="",
     )
 
 
@@ -788,9 +872,12 @@ async def get_latest_firmware(current: str = "4.4.0", target: str = "MATEKF411")
                 raise HTTPException(status_code=500, detail="Failed to fetch from GitHub")
             
             release_data = response.json()
-            current_parts = [int(x) for x in current.split('.')]
+            # Extract only numeric version parts — handles "BTFL 4.4.3", "v4.4.3", "4.4.3", etc.
+            current_match = re.search(r'(\d+)\.(\d+)\.(\d+)', current)
+            current_parts = [int(current_match.group(i)) for i in (1, 2, 3)] if current_match else [4, 4, 0]
             latest_tag = release_data['tag_name'].replace('v', '')
-            latest_parts = [int(x) for x in latest_tag.split('.')]
+            latest_match = re.search(r'(\d+)\.(\d+)\.(\d+)', latest_tag)
+            latest_parts = [int(latest_match.group(i)) for i in (1, 2, 3)] if latest_match else [0, 0, 0]
             
             def version_is_newer(latest: list, current: list) -> bool:
                 for i in range(max(len(latest), len(current))):
